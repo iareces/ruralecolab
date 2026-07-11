@@ -17,7 +17,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{
@@ -4342,15 +4341,31 @@ function mindeeDesenvolverCampo(f){
 }
 
 async function mindeeViaProxy(base64, mime){
-  const res = await fetch('/.netlify/functions/mindee-proxy', {
+  const enqueueRes = await fetch('/.netlify/functions/mindee-enqueue', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ base64, mime })
   });
-  const json = await res.json();
-  if(res.status===202) throw new Error('Mindee tardó demasiado en responder, prueba otra vez');
-  if(!res.ok) throw new Error('Mindee: '+(json?.error?.detail || json?.error?.message || JSON.stringify(json?.error) || res.status));
-  return json;
+  const enqueueJson = await enqueueRes.json();
+  if(!enqueueRes.ok) throw new Error('Mindee (enqueue): '+(enqueueJson?.error?.detail || enqueueJson?.error?.message || JSON.stringify(enqueueJson?.error) || enqueueRes.status));
+  const { pollingUrl } = enqueueJson;
+  if(!pollingUrl) throw new Error('Mindee: no se recibió pollingUrl');
+
+  const maxIntentos = 30, esperaMs = 1500; // hasta 45s, sin límite de una sola función
+  for(let i=0;i<maxIntentos;i++){
+    await new Promise(r=>setTimeout(r, esperaMs));
+    const statusRes = await fetch('/.netlify/functions/mindee-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pollingUrl })
+    });
+    const statusJson = await statusRes.json();
+    if(!statusRes.ok) throw new Error('Mindee (status): '+(statusJson?.error || statusRes.status));
+    if(statusJson.status==='done') return statusJson.resultado;
+    if(statusJson.status==='failed') throw new Error('Mindee: proceso fallido — '+(statusJson.error?.message||JSON.stringify(statusJson.error)));
+    // 'waiting' → sigue el bucle
+  }
+  throw new Error('Mindee: tiempo de espera agotado (45s), prueba otra vez');
 }
 
 async function mindeeExtraerFactura(base64, mime){
