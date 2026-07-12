@@ -4375,6 +4375,14 @@ async function mindeeExtraerFactura(base64, mime){
 
   const val = (...claves) => { for(const k of claves){ const v = mindeeDesenvolverCampo(fields[k]); if(v!=null && v!=='') return v; } return null; };
 
+  // NIF: viene como una lista de objetos {type, number} dentro de *_company_registration
+  const nifDeLista = (campo) => {
+    const items = fields[campo]?.items;
+    if(!items || !items.length) return null;
+    const primero = items[0]?.fields || {};
+    return mindeeDesenvolverCampo(primero.number) || null;
+  };
+
   let lineas = [];
   const listaLineas = fields.line_items || fields.lineas || fields.items;
   if(listaLineas?.items){
@@ -4383,7 +4391,7 @@ async function mindeeExtraerFactura(base64, mime){
       const desc = mindeeDesenvolverCampo(sub.description || sub.desc || sub.producto) || '';
       const uds = parseFloat(mindeeDesenvolverCampo(sub.quantity || sub.uds || sub.cantidad)) || 1;
       const precio = parseFloat(mindeeDesenvolverCampo(sub.unit_price || sub.precio)) || 0;
-      const imp = parseFloat(mindeeDesenvolverCampo(sub.total_amount || sub.importe)) || (uds*precio);
+      const imp = parseFloat(mindeeDesenvolverCampo(sub.total_price || sub.total_amount || sub.importe)) || (uds*precio);
       return { desc, uds, precio, imp };
     }).filter(l=>l.desc);
   }
@@ -4394,16 +4402,26 @@ async function mindeeExtraerFactura(base64, mime){
     fecha = `${y}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
   }
 
+  // El IVA viene como tasa decimal (0.04) dentro de taxes.items[0].fields.rate
+  let ivaPct = null;
+  const taxItems = fields.taxes?.items;
+  if(taxItems && taxItems.length){
+    const tasa = parseFloat(mindeeDesenvolverCampo(taxItems[0].fields?.rate));
+    if(!isNaN(tasa)) ivaPct = tasa*100;
+  }
+  if(ivaPct==null){ const directo = parseFloat(val('tax_rate','iva_pct')); if(!isNaN(directo)) ivaPct = directo; }
+
   return {
     numero: val('invoice_number','numero','number'),
     albaran: val('albaran','delivery_note','numero_albaran'),
-    pedido: val('pedido','order_number','purchase_order'),
+    pedido: val('pedido','order_number','purchase_order','po_number'),
     fecha,
     proveedor_nombre: val('supplier_name','proveedor','vendor_name'),
-    proveedor_nif: val('supplier_tax_id','supplier_company_registrations','nif','cif'),
+    proveedor_nif: nifDeLista('supplier_company_registration') || val('supplier_tax_id','nif','cif'),
     cliente_nombre: val('customer_name','client_name','buyer_name','cliente'),
+    cliente_nif: nifDeLista('customer_company_registration') || val('customer_tax_id'),
     base: parseFloat(val('total_net','subtotal','base')) || null,
-    iva_pct: parseFloat(val('tax_rate','iva_pct')) || null,
+    iva_pct: ivaPct,
     iva_imp: parseFloat(val('total_tax','iva_imp')) || null,
     total: parseFloat(val('total_amount','total')) || null,
     lineas
