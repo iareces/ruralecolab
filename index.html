@@ -2828,16 +2828,25 @@ function verHistorialVentasTienda(){
 let revisionAlbaranesPendientes = [];
 
 function detectarClienteEnTexto(texto){
-  const t = (texto||'').toUpperCase();
+  const t = (texto||'').toUpperCase().trim();
+  if(!t) return null;
   const clientes = dbGet('clientes');
-  // Coincidencia por nombre completo o por la primera palabra significativa del nombre
+  // 1) Coincidencia por nombre completo tal cual está guardado
   let match = clientes.find(c => c.nombre && t.includes(c.nombre.toUpperCase()));
-  if(!match){
-    match = clientes.find(c=>{
-      const primera = (c.nombre||'').split(/[\s(]/)[0].toUpperCase();
-      return primera.length>3 && t.includes(primera);
-    });
-  }
+  if(match) return match.id;
+  // 2) Coincidencia por el nombre guardado SIN el nombre comercial entre paréntesis
+  //    (ej. "CyP HOSTECNO S.L. (La Nueva Zamorana)" → "CYP HOSTECNO S.L.")
+  match = clientes.find(c=>{
+    const base = (c.nombre||'').split('(')[0].trim().toUpperCase();
+    return base.length>=3 && t.includes(base);
+  });
+  if(match) return match.id;
+  // 3) Al revés: el texto detectado está contenido dentro del nombre guardado
+  //    (por si Mindee devuelve un nombre más corto o abreviado)
+  match = clientes.find(c=>{
+    const nombreCliente = (c.nombre||'').toUpperCase();
+    return t.length>=3 && nombreCliente.includes(t);
+  });
   return match ? match.id : null;
 }
 
