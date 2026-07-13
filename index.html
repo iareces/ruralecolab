@@ -158,7 +158,7 @@ tr:hover td{background:#FAFCFA}
 .totales-final{display:flex;justify-content:space-between;padding:10px 0 4px;font-size:16px;font-weight:800;color:var(--green-d);border-top:2px solid var(--green);margin-top:8px}
 
 /* ─── LINEAS ─── */
-.linea-row{display:grid;grid-template-columns:80px 80px 1fr 60px 80px 80px 90px 32px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.linea-row{display:grid;grid-template-columns:80px 80px 1fr 60px 80px 80px 32px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
 .linea-row:last-child{border-bottom:none}
 .linea-add-btn{display:block;width:100%;padding:8px;text-align:center;background:var(--green-l);color:var(--green-d);border:2px dashed var(--green-m);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin-top:8px;transition:.2s}
 .linea-add-btn:hover{background:var(--green);color:#fff}
@@ -239,7 +239,7 @@ tr:hover td{background:#FAFCFA}
   .dash-charts,.form-grid{grid-template-columns:1fr}
   .kpi-grid{grid-template-columns:1fr 1fr}
   .linea-row{grid-template-columns:1fr 60px 70px 32px}
-  .linea-row .linea-alb,.linea-row .linea-ped,.linea-row .linea-lote{display:none}
+  .linea-row .linea-alb,.linea-row .linea-ped{display:none}
   .form-group.full{grid-column:1}
 }
 </style>
@@ -292,9 +292,6 @@ tr:hover td{background:#FAFCFA}
     <div class="sb-section">Control</div>
     <div class="sb-item" data-s="gastos" onclick="go('gastos')"><span class="icon">💸</span> Gastos</div>
     <div class="sb-item" data-s="costes-cultivo" onclick="go('costes-cultivo')"><span class="icon">🌱</span> Costes x Cultivo</div>
-    <div class="sb-item" data-s="lotes" onclick="go('lotes')"><span class="icon">🏷️</span> Lotes (trazabilidad)</div>
-    <div class="sb-item" data-s="inteligencia" onclick="go('inteligencia')"><span class="icon">🧠</span> Recomendaciones</div>
-    <div class="sb-item" data-s="impacto" onclick="go('impacto')"><span class="icon">🌍</span> Impacto Ecológico</div>
     <div class="sb-item" data-s="materiales" onclick="go('materiales')"><span class="icon">🧪</span> Materiales</div>
     <div class="sb-item" data-s="rentabilidad" onclick="go('rentabilidad')"><span class="icon">📈</span> Rentabilidad</div>
     <div class="sb-section">Gestión</div>
@@ -336,13 +333,9 @@ tr:hover td{background:#FAFCFA}
     </div>
     <div class="kpi-grid" style="margin-bottom:20px">
       <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-l)"><div class="kpi-icon">📤</div><div><div class="kpi-label">Gastos</div><div class="kpi-value" id="k-gastos">—</div></div></div>
-      <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-l)"><div class="kpi-icon">📥</div><div><div class="kpi-label">Ingresos (facturas + tienda)</div><div class="kpi-value" id="k-ingresos">—</div></div></div>
+      <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-l)"><div class="kpi-icon">📥</div><div><div class="kpi-label">Ingresos</div><div class="kpi-value" id="k-ingresos">—</div></div></div>
       <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-l)"><div class="kpi-icon">💰</div><div><div class="kpi-label">Balance</div><div class="kpi-value" id="k-balance">—</div></div></div>
       <div class="kpi-card" style="--kpi-color:var(--orange);--kpi-bg:var(--orange-l)"><div class="kpi-icon">⏳</div><div><div class="kpi-label">Pdte. Cobrar</div><div class="kpi-value" id="k-cobrar">—</div></div></div>
-    </div>
-    <div class="card" style="margin-bottom:20px">
-      <h3 style="margin-top:0">📊 Comparativa con el año anterior (mismo periodo del mes en curso)</h3>
-      <div class="kpi-grid" id="dash-comparativa"></div>
     </div>
     <div class="dash-charts">
       <div class="card"><div class="card-header"><div class="card-title">📈 Gastos vs Ingresos</div></div><div class="card-body"><canvas id="ch-main" height="140"></canvas></div></div>
@@ -436,7 +429,7 @@ tr:hover td{background:#FAFCFA}
               </div>
               <div class="form-group"><label>IVA</label><select class="select" id="nf-iva" onchange="calcTotales()"><option value="21">21% General</option><option value="10">10% Reducido</option><option value="4">4% Superreducido</option><option value="0">0% Exento</option></select></div>
               <div class="form-group"><label>Rec. Equivalencia</label><select class="select" id="nf-recargo" onchange="calcTotales()"><option value="0">0% No aplica</option><option value="5.2">5.2% (IVA 21%)</option><option value="1.4">1.4% (IVA 10%)</option><option value="0.5">0.5% (IVA 4%)</option></select></div>
-              <div class="form-group"><label>Cultivo</label><select class="select" id="nf-cultivo" onchange="renderLineas()"><option value="">Sin cultivo</option></select></div>
+              <div class="form-group"><label>Cultivo</label><select class="select" id="nf-cultivo"><option value="">Sin cultivo</option></select></div>
               <div class="form-group"><label>Categoría</label><select class="select" id="nf-cat"><option value="">Sin categoría</option><option value="Semillas">🌱 Semillas</option><option value="Fertilizantes">💧 Fertilizantes</option><option value="Fitosanitarios">🧪 Fitosanitarios</option><option value="Maquinaria">⚙️ Maquinaria</option><option value="Energía">⚡ Energía</option><option value="Mano de obra">👷 Mano de obra</option><option value="Packaging">📦 Packaging</option><option value="Transporte">🚛 Transporte</option><option value="Otros">📎 Otros</option></select></div>
               <div class="form-group"><label>Nº Albarán</label><input class="input" id="nf-albaran" placeholder="ALB-2026-001"></div>
               <div class="form-group"><label>Nº Pedido</label><input class="input" id="nf-pedido" placeholder="PED-2026-001"></div>
@@ -487,28 +480,7 @@ tr:hover td{background:#FAFCFA}
         <button class="btn btn-secondary" onclick="exportCSV('P')">📊 CSV</button>
         <button class="btn btn-secondary" onclick="descargarFacturasExcel('P')">📗 Excel (todas)</button>
         <button class="btn btn-secondary" onclick="descargarFacturasPDF('P')">📄 PDF (todas)</button>
-        <button class="btn btn-secondary" onclick="document.getElementById('fp-upload-block').style.display='block'">📤 Subir varias facturas recibidas</button>
         <button class="btn btn-primary" onclick="go('nueva-factura')">➕ Nueva</button>
-      </div>
-    </div>
-    <div id="fp-upload-block" class="card" style="display:none;margin-bottom:20px">
-      <h3 style="margin-top:0">Subir varias facturas recibidas</h3>
-      <p style="color:var(--text-s);font-size:13px">Sube todas las facturas de proveedor que tengas — fotos o PDF, una a una o todas a la vez. Se leen automáticamente y las revisas antes de guardar, cada una queda como una factura independiente.</p>
-      <div id="fp-upload-drop" class="ocr-drop-zone" style="padding:20px"
-        ondragover="event.preventDefault();this.classList.add('drag-over')"
-        ondragleave="this.classList.remove('drag-over')"
-        ondrop="dropFacturasRecibidas(event)">
-        <div class="ocr-drop-icon">📤</div>
-        <div class="ocr-drop-title">Arrastra aquí las facturas recibidas</div>
-        <label class="btn btn-secondary btn-sm" style="margin-top:8px;cursor:pointer">
-          📎 Seleccionar archivos
-          <input type="file" accept="image/*,.pdf" multiple style="display:none" onchange="procesarFacturasRecibidasSubida(this.files)">
-        </label>
-      </div>
-      <div id="fp-upload-progreso" style="display:none;margin-top:10px;font-size:13px;color:var(--text-s)"></div>
-      <div id="fp-revision-lista" style="margin-top:14px"></div>
-      <div id="fp-revision-guardar-todas" style="display:none;margin-top:10px">
-        <button class="btn btn-primary" onclick="guardarTodasFacturasRecibidas()">💾 Guardar todas</button>
       </div>
     </div>
     <div class="filters-bar">
@@ -619,7 +591,7 @@ tr:hover td{background:#FAFCFA}
       <h3 style="margin-top:0">Venta actual</h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Lote</th><th></th></tr></thead>
+          <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th></th></tr></thead>
           <tbody id="tienda-carrito-tbody"></tbody>
         </table>
       </div>
@@ -675,47 +647,6 @@ tr:hover td{background:#FAFCFA}
     <div class="card"><div class="card-header"><div class="card-title">📊 Comparativa</div></div><div class="card-body"><canvas id="ch-cultivos" height="120"></canvas></div></div>
   </section>
 
-  <!-- ══════════════ LOTES (TRAZABILIDAD) ══════════════ -->
-  <section id="s-lotes" class="screen">
-    <div class="page-header">
-      <div class="page-title">Lotes — Trazabilidad</div>
-      <div class="page-actions"><button class="btn btn-primary" onclick="formLote(null)">➕ Nuevo lote</button></div>
-    </div>
-    <p style="color:var(--text-s);font-size:13px;margin-bottom:16px">Cada lote genera un código QR que enlaza a una ficha pública (sin login) con el origen del producto — fecha de siembra, invernadero, recolección y certificación. Ideal para tickets, etiquetas o mostrárselo a clientes HORECA.</p>
-    <div class="card">
-      <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cultivo</th><th>Invernadero</th><th>Siembra</th><th>Recolección</th><th>QR</th><th>Acciones</th></tr></thead><tbody id="lotes-tbody"></tbody></table></div>
-    </div>
-  </section>
-
-  <!-- ══════════════ RECOMENDACIONES (INTELIGENCIA) ══════════════ -->
-  <section id="s-inteligencia" class="screen">
-    <div class="page-header"><div class="page-title">Recomendaciones</div></div>
-    <p style="color:var(--text-s);font-size:13px;margin-bottom:16px">Generadas automáticamente a partir de tu histórico de facturas — qué cultivos están funcionando mejor, qué clientes crecen, y previsión de demanda para el mes que viene.</p>
-    <div class="card" style="margin-bottom:20px"><div class="card-header"><div class="card-title">🌱 Qué cultivar / potenciar</div></div>
-      <div class="table-wrap"><table><thead><tr><th>Cultivo</th><th>Margen %</th><th>Tendencia vs. año anterior</th><th>Recomendación</th></tr></thead><tbody id="reco-cultivos-tbody"></tbody></table></div>
-    </div>
-    <div class="card" style="margin-bottom:20px"><div class="card-header"><div class="card-title">👥 Clientes en crecimiento</div></div>
-      <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Este año</th><th>Año anterior</th><th>Variación</th></tr></thead><tbody id="reco-clientes-tbody"></tbody></table></div>
-    </div>
-    <div class="card"><div class="card-header"><div class="card-title">📦 Previsión de demanda (próximo mes)</div></div>
-      <p style="color:var(--text-s);font-size:12px;margin:0 0 10px">Estimado a partir de la media de los últimos meses del mismo cliente/producto — orientativo, no exacto.</p>
-      <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Producto</th><th>Media histórica</th><th>Previsión próximo mes</th></tr></thead><tbody id="reco-prevision-tbody"></tbody></table></div>
-    </div>
-  </section>
-
-  <!-- ══════════════ IMPACTO ECOLÓGICO ══════════════ -->
-  <section id="s-impacto" class="screen">
-    <div class="page-header">
-      <div class="page-title">Impacto Ecológico</div>
-      <div class="page-actions"><button class="btn btn-primary" onclick="descargarImpactoPDF()">📄 Descargar panel (PDF)</button></div>
-    </div>
-    <p style="color:var(--text-s);font-size:12px;margin-bottom:16px">⚠ Estimaciones orientativas a partir de tus ventas y de una equivalencia estándar de transporte — no son una auditoría de huella de carbono certificada.</p>
-    <div id="impacto-kpis" class="kpi-grid" style="margin-bottom:20px"></div>
-    <div class="card"><div class="card-header"><div class="card-title">🌿 Resumen para compartir</div></div>
-      <div class="card-body" id="impacto-resumen" style="font-size:14px;line-height:1.8"></div>
-    </div>
-  </section>
-
   <!-- ══════════════ MATERIALES ══════════════ -->
   <section id="s-materiales" class="screen">
     <div class="page-header">
@@ -746,9 +677,6 @@ tr:hover td{background:#FAFCFA}
     </div>
     <div class="card"><div class="card-header"><div class="card-title">📋 Por Cultivo</div></div>
       <div class="table-wrap"><table><thead><tr><th>Cultivo</th><th>Ingresos</th><th>Gastos</th><th>Margen €</th><th>Margen %</th></tr></thead><tbody id="rent-tbody"></tbody></table></div>
-    </div>
-    <div class="card" style="margin-top:20px"><div class="card-header"><div class="card-title">👥 Rentabilidad por Cliente</div></div>
-      <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Canal</th><th>Nº Facturas</th><th>Total facturado</th><th>Ticket medio</th><th>Producto más comprado</th></tr></thead><tbody id="rent-cliente-tbody"></tbody></table></div>
     </div>
   </section>
 
@@ -844,15 +772,6 @@ tr:hover td{background:#FAFCFA}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">📊</div><h3>Reporte Mensual PDF</h3><button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:10px" onclick="genReportePDF()">📄 Descargar</button></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">📗</div><h3>Informe Mensual Facturación (Excel)</h3><button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:10px" onclick="exportInformeMensualExcel()">📗 Descargar</button></div>
-      <div class="card" style="padding:20px;text-align:center">
-        <div style="font-size:36px;margin-bottom:10px">🧾</div><h3>Libro de IVA (trimestral)</h3>
-        <select class="select" id="iva-trimestre" style="width:100%;margin:8px 0">
-          <option value="1">1T (Ene-Mar)</option><option value="2">2T (Abr-Jun)</option>
-          <option value="3">3T (Jul-Sep)</option><option value="4">4T (Oct-Dic)</option>
-        </select>
-        <select class="select" id="iva-anio" style="width:100%;margin-bottom:8px"></select>
-        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="exportLibroIVA()">🧾 Descargar (modelo 303 / gestoría)</button>
-      </div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">📋</div><h3>Exportar CSV</h3><button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px" onclick="exportCSV('all')">📊 Exportar</button></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">💾</div><h3>Backup JSON</h3><button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px" onclick="exportBackup()">💾 Backup</button></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">📤</div><h3>Importar Backup</h3><label class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px;cursor:pointer">📂 Seleccionar<input type="file" accept=".json" style="display:none" onchange="importBackup(this)"></label></div>
@@ -1010,7 +929,7 @@ async function sbDelete(table, id){
 // ─── Carga masiva al inicio (resiliente: si falta una tabla, no bloquea el resto) ───
 async function loadAllData(){
   showGlobalSpinner(true);
-  const tablas = ['facturas','proveedores','clientes','productos','materiales','stock','presupuestos','config','tickets','ventas_tienda','albaranes_pendientes','costes_cultivo','cultivos','lotes'];
+  const tablas = ['facturas','proveedores','clientes','productos','materiales','stock','presupuestos','config','tickets','ventas_tienda','albaranes_pendientes','costes_cultivo','cultivos'];
   const resultados = await Promise.allSettled(tablas.map(t=>sbFetch(t)));
   const fallidas = [];
   resultados.forEach((r,i)=>{
@@ -1051,17 +970,6 @@ function showGlobalSpinner(show){
 function dbGet(k, def=[]){
   if(k==='config') return CACHE.config || {};
   return CACHE[k] || def;
-}
-
-// Ingresos de tienda combinando los dos sistemas: "Ticket Tienda" (entrada manual
-// diaria) + "Tienda" (TPV, venta por venta). Se suman porque representan canales
-// de venta física complementarios — cada uno cubre los días/ventas que registres ahí.
-function ingresosTiendaEnRango(desde, hasta){
-  const tks = dbGet('tickets').filter(t=>(!desde||t.fecha>=desde)&&(!hasta||t.fecha<=hasta));
-  const ventas = dbGet('ventas_tienda').filter(v=>(!desde||v.fecha>=desde)&&(!hasta||v.fecha<=hasta));
-  const totalTickets = tks.reduce((s,t)=>s+(parseFloat(t.ticket)||0)+(parseFloat(t.datafono)||0),0);
-  const totalVentas = ventas.reduce((s,v)=>s+(parseFloat(v.total)||0),0);
-  return totalTickets+totalVentas;
 }
 
 // Sesión sigue en localStorage (es solo local)
@@ -1247,7 +1155,6 @@ const TITLES={
   'tickets':'🎫 Ticket Tienda',
   'tienda':'🏪 Tienda (venta)',
   'gastos':'💸 Gastos','costes-cultivo':'🌱 Costes por Cultivo',
-  'lotes':'🏷️ Lotes (trazabilidad)','inteligencia':'🧠 Recomendaciones','impacto':'🌍 Impacto Ecológico',
   'materiales':'🧪 Materiales','rentabilidad':'📈 Rentabilidad',
   'proveedores':'🏭 Proveedores','clientes':'👥 Clientes',
   'productos':'🌿 Productos','stock':'📦 Stock',
@@ -1271,7 +1178,6 @@ function go(screen){
     'tickets':renderTickets,
     'tienda':renderTienda,
     'gastos':renderGastos,'costes-cultivo':renderCultivosCostes,
-    'lotes':renderLotes,'inteligencia':renderInteligencia,'impacto':renderImpacto,
     'materiales':renderMateriales,'rentabilidad':renderRentabilidad,
     'proveedores':renderProveedores,'clientes':renderClientes,
     'productos':renderProductos,'stock':renderStock,
@@ -1575,41 +1481,6 @@ function descargarFacturaPDF(id){
   }catch(e){ toast('Error al generar el PDF: '+e.message,'err'); }
 }
 
-async function enviarFacturaPorEmail(id){
-  const f = dbGet('facturas').find(x=>x.id===id);
-  if(!f){ toast('Factura no encontrada','err'); return; }
-  const esProv = f.tipo==='P';
-  const entidad = esProv ? getProv(f.provId) : getCli(f.cliId);
-  const asunto = `Factura ${f.num||''} — Rural EcoLab SL`;
-  const cuerpo = `Hola,\n\nAdjunto la factura ${f.num||''} de fecha ${fmtDate(f.fecha)} por importe de ${eur(f.total)}.\n\nUn saludo,\nRural EcoLab SL`;
-
-  try{
-    const {jsPDF} = window.jspdf;
-    const doc = new jsPDF();
-    dibujarFacturaPDF(doc, f, 20);
-    const nombreArchivo = (esProv?'factura_proveedor_':'factura_cliente_')+(f.num||f.id)+'.pdf';
-    const blob = doc.output('blob');
-
-    // En móvil (o Chrome/Safari recientes): comparte el PDF directamente a Gmail/Mail/WhatsApp, etc.
-    const archivo = new File([blob], nombreArchivo, {type:'application/pdf'});
-    if(navigator.canShare && navigator.canShare({files:[archivo]})){
-      await navigator.share({
-        files:[archivo],
-        title: asunto,
-        text: cuerpo
-      });
-      return;
-    }
-
-    // Respaldo: descarga el PDF y abre el email ya escrito, solo falta adjuntarlo a mano
-    doc.save(nombreArchivo);
-    const destinatario = entidad.email || '';
-    const mailto = `mailto:${encodeURIComponent(destinatario)}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo+'\n\n(Adjunta el PDF que se acaba de descargar)')}`;
-    window.location.href = mailto;
-    toast('PDF descargado — adjúntalo en el email que se ha abierto');
-  }catch(e){ toast('Error al preparar el email: '+e.message,'err'); }
-}
-
 function descargarFacturasPDF(tipo){
   let facts = dbGet('facturas');
   if(tipo!=='all') facts = facts.filter(f=>f.tipo===tipo);
@@ -1726,9 +1597,7 @@ let chMain,chCultivo;
 function renderDashboard(){
   const facts=dbGet('facturas');
   const gastos=facts.filter(f=>f.tipo==='P').reduce((s,f)=>s+f.total,0);
-  const ingresosFact=facts.filter(f=>f.tipo==='C').reduce((s,f)=>s+f.total,0);
-  const ingresosTiendaTotal=ingresosTiendaEnRango(null,null);
-  const ingresos=ingresosFact+ingresosTiendaTotal;
+  const ingresos=facts.filter(f=>f.tipo==='C').reduce((s,f)=>s+f.total,0);
   const cobrar=facts.filter(f=>f.tipo==='C'&&f.estado==='pendiente').reduce((s,f)=>s+f.total,0);
   document.getElementById('k-gastos').textContent=eur(gastos);
   document.getElementById('k-ingresos').textContent=eur(ingresos);
@@ -1736,25 +1605,6 @@ function renderDashboard(){
   document.getElementById('k-cobrar').textContent=eur(cobrar);
   const d=new Date();
   document.getElementById('dash-fecha').textContent=d.toLocaleDateString('es-ES',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-  // Comparativa con el año anterior: del día 1 del mes actual hasta hoy, vs el mismo tramo el año pasado
-  const anioActual = d.getFullYear(), mesActual = d.getMonth(), diaActual = d.getDate();
-  const desdeActual = `${anioActual}-${String(mesActual+1).padStart(2,'0')}-01`;
-  const hastaActual = today();
-  const desdeAnterior = `${anioActual-1}-${String(mesActual+1).padStart(2,'0')}-01`;
-  const hastaAnterior = `${anioActual-1}-${String(mesActual+1).padStart(2,'0')}-${String(diaActual).padStart(2,'0')}`;
-  const sumaTipo = (desde,hasta,tipo) => facts.filter(f=>f.tipo===tipo && f.fecha>=desde && f.fecha<=hasta).reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-  const ingActual = sumaTipo(desdeActual,hastaActual,'C')+ingresosTiendaEnRango(desdeActual,hastaActual);
-  const ingAnterior = sumaTipo(desdeAnterior,hastaAnterior,'C')+ingresosTiendaEnRango(desdeAnterior,hastaAnterior);
-  const gasActual = sumaTipo(desdeActual,hastaActual,'P'), gasAnterior = sumaTipo(desdeAnterior,hastaAnterior,'P');
-  const pctCambio = (act,ant) => ant>0 ? ((act-ant)/ant*100) : (act>0?100:0);
-  const pctIng = pctCambio(ingActual,ingAnterior), pctGas = pctCambio(gasActual,gasAnterior);
-  const flechaColor = (p,invertido) => (invertido ? p<=0 : p>=0) ? 'var(--green)' : 'var(--red)';
-  document.getElementById('dash-comparativa').innerHTML = `
-    <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-l)"><div class="kpi-icon">📥</div><div><div class="kpi-label">Ingresos (mes en curso)</div><div class="kpi-value">${eur(ingActual)}</div><div style="font-size:12px;color:${flechaColor(pctIng,false)}">${pctIng>=0?'▲':'▼'} ${Math.abs(pctIng).toFixed(1)}% vs. ${anioActual-1}</div></div></div>
-    <div class="kpi-card" style="--kpi-color:var(--red);--kpi-bg:var(--red-l)"><div class="kpi-icon">📤</div><div><div class="kpi-label">Gastos (mes en curso)</div><div class="kpi-value">${eur(gasActual)}</div><div style="font-size:12px;color:${flechaColor(pctGas,true)}">${pctGas>=0?'▲':'▼'} ${Math.abs(pctGas).toFixed(1)}% vs. ${anioActual-1}</div></div></div>
-    <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-l)"><div class="kpi-icon">💰</div><div><div class="kpi-label">Balance mismo periodo ${anioActual-1}</div><div class="kpi-value">${eur(ingAnterior-gasAnterior)}</div></div></div>
-  `;
   // Recent
   const recent=[...facts].sort((a,b)=>b.fecha?.localeCompare(a.fecha)).slice(0,6);
   document.getElementById('dash-recent').innerHTML=recent.map(f=>`
@@ -1961,11 +1811,7 @@ function removeLinea(id){
 }
 
 function renderLineas(){
-  const lotes = dbGet('lotes');
-  const cultivoSel = document.getElementById('nf-cultivo')?.value || '';
-  document.getElementById('lineas-wrap').innerHTML=nfLineas.map(l=>{
-    const lotesFiltrados = lotes.filter(lo=>!cultivoSel || lo.cultivo===cultivoSel);
-    return `
+  document.getElementById('lineas-wrap').innerHTML=nfLineas.map(l=>`
     <div class="linea-row" id="lr-${l.id}">
       <input class="input linea-alb" placeholder="Albarán" value="${l.alb||''}" oninput="updLinea('${l.id}','alb',this.value)">
       <input class="input linea-ped" placeholder="Pedido" value="${l.ped||''}" oninput="updLinea('${l.id}','ped',this.value)">
@@ -1973,14 +1819,9 @@ function renderLineas(){
       <input class="input" type="number" min="0" step="0.001" value="${l.uds||1}" oninput="updLinea('${l.id}','uds',this.value);calcLinea('${l.id}')">
       <input class="input" type="number" min="0" step="0.01" value="${l.precio||0}" oninput="updLinea('${l.id}','precio',this.value);calcLinea('${l.id}')">
       <input class="input" readonly value="${fmt(l.imp)}" style="background:#f8f8f8;font-weight:700">
-      <select class="select linea-lote" onchange="updLinea('${l.id}','lote',this.value)">
-        <option value="">Sin lote</option>
-        ${lotesFiltrados.map(lo=>`<option value="${lo.codigo}" ${l.lote===lo.codigo?'selected':''}>${lo.codigo}</option>`).join('')}
-      </select>
       <button class="btn btn-sm btn-icon" onclick="removeLinea('${l.id}')">🗑</button>
     </div>
-  `;
-  }).join('');
+  `).join('');
 }
 
 function updLinea(id,k,v){ const l=nfLineas.find(x=>x.id===id); if(l) l[k]=v; }
@@ -2172,346 +2013,6 @@ function filterFP(el,f){
   renderFP();
 }
 
-// ════════════════════════════════════════════════════
-//  SUBIDA MASIVA DE FACTURAS RECIBIDAS (proveedores)
-//  Cada documento se guarda como una factura independiente
-//  (a diferencia de los albaranes, que se agrupan).
-// ════════════════════════════════════════════════════
-let revisionFacturasRecibidas = [];
-
-function dropFacturasRecibidas(event){
-  event.preventDefault();
-  event.currentTarget.classList.remove('drag-over');
-  const files = event.dataTransfer.files;
-  if(files && files.length) procesarFacturasRecibidasSubida(files);
-}
-
-async function procesarFacturasRecibidasSubida(fileList){
-  const files = Array.from(fileList||[]);
-  if(!files.length) return;
-  const prog = document.getElementById('fp-upload-progreso');
-  if(prog) prog.style.display='block';
-
-  for(let i=0;i<files.length;i++){
-    const file = files[i];
-    if(prog) prog.textContent = `Leyendo factura ${i+1} de ${files.length}: ${file.name}...`;
-    try{
-      const {base64,mime} = await fileToBase64(file);
-      const d = await extraerDatosDocumento(base64, mime);
-      const provs = dbGet('proveedores');
-      const match = buscarEntidadPorNombreONif(provs, d.proveedor_nombre, d.proveedor_nif);
-      revisionFacturasRecibidas.push({
-        archivo: file.name,
-        num: d.numero || '',
-        fecha: d.fecha || today(),
-        provId: match ? match.id : null,
-        cultivo: '',
-        lineas: (d.lineas||[]).map(l=>({desc:l.desc||'', uds:parseFloat(l.uds)||1, precio:parseFloat(l.precio)||0})),
-        ivaPct: d.iva_pct ?? 21
-      });
-    }catch(e){
-      console.warn('Error OCR', file.name, e.message);
-      revisionFacturasRecibidas.push({ archivo:file.name, num:'', fecha:today(), provId:null, cultivo:'', lineas:[], ivaPct:21, error:e.message });
-    }
-  }
-  if(prog) prog.style.display='none';
-  renderRevisionFacturasRecibidas();
-}
-
-function renderRevisionFacturasRecibidas(){
-  const cont = document.getElementById('fp-revision-lista');
-  const btnTodas = document.getElementById('fp-revision-guardar-todas');
-  btnTodas.style.display = revisionFacturasRecibidas.length ? 'block' : 'none';
-  const provs = dbGet('proveedores');
-  cont.innerHTML = revisionFacturasRecibidas.map((r,idx)=>{
-    const total = r.lineas.reduce((s,l)=>s+(l.uds||0)*(l.precio||0),0);
-    const filasLineas = r.lineas.map((l,li)=>`
-      <tr>
-        <td><input class="input" value="${l.desc||''}" onchange="revisionFacturasRecibidas[${idx}].lineas[${li}].desc=this.value"></td>
-        <td><input class="input" type="number" step="0.01" style="width:70px" value="${l.uds||1}" onchange="revisionFacturasRecibidas[${idx}].lineas[${li}].uds=parseFloat(this.value)||0;renderRevisionFacturasRecibidas()"></td>
-        <td><input class="input" type="number" step="0.01" style="width:80px" value="${l.precio||0}" onchange="revisionFacturasRecibidas[${idx}].lineas[${li}].precio=parseFloat(this.value)||0;renderRevisionFacturasRecibidas()"></td>
-        <td><button class="btn btn-sm btn-icon" onclick="revisionFacturasRecibidas[${idx}].lineas.splice(${li},1);renderRevisionFacturasRecibidas()">🗑</button></td>
-      </tr>`).join('');
-    return `
-    <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <div class="form-group" style="margin:0;flex:2;min-width:180px"><label>Proveedor${r.provId?' (detectado)':' — revisa, no detectado'}</label>
-          <select class="select" onchange="revisionFacturasRecibidas[${idx}].provId=this.value?parseInt(this.value):null">
-            <option value="">— Elegir —</option>
-            ${provs.map(p=>`<option value="${p.id}" ${r.provId===p.id?'selected':''}>${p.nombre}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group" style="margin:0"><label>Nº Factura</label><input class="input" style="width:130px" value="${r.num}" onchange="revisionFacturasRecibidas[${idx}].num=this.value"></div>
-        <div class="form-group" style="margin:0"><label>Fecha</label><input class="input" type="date" value="${r.fecha}" onchange="revisionFacturasRecibidas[${idx}].fecha=this.value"></div>
-        <div class="form-group" style="margin:0"><label>Cultivo</label><select class="select" onchange="revisionFacturasRecibidas[${idx}].cultivo=this.value">${opcionesCultivo(r.cultivo,true)}</select></div>
-        <div class="form-group" style="margin:0"><label>IVA %</label><input class="input" type="number" style="width:70px" value="${r.ivaPct}" onchange="revisionFacturasRecibidas[${idx}].ivaPct=parseFloat(this.value)||0"></div>
-        <button class="btn btn-secondary btn-sm" onclick="guardarFacturaRecibidaIndividual(${idx})">💾 Guardar esta</button>
-        <button class="btn btn-sm btn-icon" onclick="revisionFacturasRecibidas.splice(${idx},1);renderRevisionFacturasRecibidas()">🗑</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-s);margin:8px 0 4px">${r.archivo}${r.error?' — ⚠ '+r.error:''} — Base: ${eur(total)}</div>
-      <div class="table-wrap"><table><thead><tr><th>Concepto</th><th>Cantidad</th><th>Precio</th><th></th></tr></thead>
-      <tbody>${filasLineas || '<tr><td colspan="4" style="color:var(--text-s)">Sin líneas detectadas — añade una a mano abajo.</td></tr>'}</tbody></table></div>
-      <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="revisionFacturasRecibidas[${idx}].lineas.push({desc:'',uds:1,precio:0});renderRevisionFacturasRecibidas()">+ Añadir línea</button>
-    </div>`;
-  }).join('');
-}
-
-async function guardarFacturaRecibidaIndividual(idx){
-  const r = revisionFacturasRecibidas[idx];
-  if(!r.provId){ toast('Elige el proveedor de esta factura','err'); return; }
-  if(!r.num){ toast('Indica el número de factura','err'); return; }
-  const lineasValidas = r.lineas.filter(l=>l.desc && l.desc.trim());
-  if(!lineasValidas.length){ toast('Añade al menos una línea con descripción','err'); return; }
-  const lineas = lineasValidas.map(l=>({ id:'l'+Date.now()+Math.random().toString(36).slice(2,5), alb:'', ped:'', desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0) }));
-  const base = lineas.reduce((s,l)=>s+l.imp,0);
-  const ivaImp = base*(r.ivaPct||0)/100;
-  const facts = dbGet('facturas');
-  const data = {
-    id: nextId(facts), num:r.num, tipo:'P', fecha:r.fecha, provId:r.provId, cultivo:r.cultivo||'', cat:'',
-    albaran:'', pedido:'', formaPago:'Transferencia Bancaria', notas:'',
-    base, iva:r.ivaPct||0, ivaImp, re:0, reImp:0, total:base+ivaImp, estado:'pendiente', lineas
-  };
-  try{
-    const saved = await sbInsert('facturas', data);
-    CACHE.facturas = [...(CACHE.facturas||[]), saved];
-    revisionFacturasRecibidas.splice(idx,1);
-    renderRevisionFacturasRecibidas();
-    renderFP();
-    toast(`✅ Factura ${r.num} guardada`);
-  }catch(e){ toast('Error al guardar: '+e.message,'err'); }
-}
-
-async function guardarTodasFacturasRecibidas(){
-  const listos = revisionFacturasRecibidas.map((r,i)=>i).filter(i=>{
-    const r = revisionFacturasRecibidas[i];
-    return r.provId && r.num && r.lineas.some(l=>l.desc && l.desc.trim());
-  }).sort((a,b)=>b-a);
-  if(!listos.length){ toast('Ninguna factura está lista (falta proveedor, número o líneas)','err'); return; }
-  for(const idx of listos){ await guardarFacturaRecibidaIndividual(idx); }
-  const pendientes = revisionFacturasRecibidas.length;
-  if(pendientes) toast(`⚠ ${pendientes} factura(s) sin guardar — revísalas (falta proveedor, número o líneas)`,'err');
-}
-
-// ════════════════════════════════════════════════════
-//  LOTES — trazabilidad con QR
-//  Cada lote enlaza a trazabilidad.html?lote=CODIGO, una
-//  página pública sin login (léela desde el móvil del cliente).
-// ════════════════════════════════════════════════════
-function renderLotes(){
-  const lotes = dbGet('lotes').slice().sort((a,b)=>(b.fecha_siembra||'').localeCompare(a.fecha_siembra||''));
-  document.getElementById('lotes-tbody').innerHTML = lotes.length ? lotes.map(l=>`
-    <tr><td><strong>${l.codigo}</strong></td><td>${iconoCultivo(l.cultivo)} ${l.cultivo}</td><td>${l.invernadero||'—'}</td>
-    <td>${fmtDate(l.fecha_siembra)}</td><td>${l.fecha_recoleccion?fmtDate(l.fecha_recoleccion):'—'}</td>
-    <td><img src="${urlQrLote(l.codigo)}" style="width:44px;height:44px;cursor:pointer" onclick="verQrLoteGrande('${l.codigo}')"></td>
-    <td style="display:flex;gap:4px">
-      <button class="btn btn-sm btn-icon" onclick="formLote(${l.id})">✏️</button>
-      <button class="btn btn-sm btn-icon" onclick="delLote(${l.id})">🗑</button>
-    </td></tr>
-  `).join('') : '<tr><td colspan="7" style="color:var(--text-s)">Todavía no hay lotes registrados.</td></tr>';
-}
-
-function urlQrLote(codigo){
-  const url = `${location.origin}/trazabilidad.html?lote=${encodeURIComponent(codigo)}`;
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-}
-
-function verQrLoteGrande(codigo){
-  const url = `${location.origin}/trazabilidad.html?lote=${encodeURIComponent(codigo)}`;
-  openModal(`QR del lote ${codigo}`, `
-    <div style="text-align:center">
-      <img src="${urlQrLote(codigo)}" style="width:260px;height:260px">
-      <p style="font-size:12px;color:var(--text-s);word-break:break-all;margin-top:10px">${url}</p>
-      <p style="font-size:12px;color:var(--text-s)">Imprímelo en la etiqueta del producto o en el ticket.</p>
-    </div>
-  `, `<button class="btn secondary" onclick="closeModal()">Cerrar</button>`);
-}
-
-function formLote(id){
-  const l = id ? dbGet('lotes').find(x=>x.id===id) : {codigo:'', cultivo:'', invernadero:'', fecha_siembra:today(), fecha_recoleccion:'', certificacion:'COPAE (Producción Ecológica)', notas:''};
-  openModal(id?'Editar lote':'Nuevo lote', `
-    <div class="form-grid">
-      <div class="form-group"><label>Código de lote</label><input class="input" id="lt-codigo" value="${l.codigo}" placeholder="Ej: L2026-045"></div>
-      <div class="form-group"><label>Cultivo</label><select class="select" id="lt-cultivo">${opcionesCultivo(l.cultivo)}</select></div>
-      <div class="form-group"><label>Invernadero / Parcela</label><input class="input" id="lt-invernadero" value="${l.invernadero||''}" placeholder="Ej: Invernadero 3"></div>
-      <div class="form-group"><label>Fecha de siembra</label><input class="input" type="date" id="lt-siembra" value="${l.fecha_siembra||''}"></div>
-      <div class="form-group"><label>Fecha de recolección</label><input class="input" type="date" id="lt-recoleccion" value="${l.fecha_recoleccion||''}"></div>
-      <div class="form-group"><label>Certificación</label><input class="input" id="lt-certificacion" value="${l.certificacion||'COPAE (Producción Ecológica)'}"></div>
-      <div class="form-group full"><label>Notas (variedad, tratamiento, etc.)</label><textarea class="input" id="lt-notas" rows="2">${l.notas||''}</textarea></div>
-    </div>
-  `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveLote(${id||'null'})">💾 Guardar</button>`);
-}
-
-async function saveLote(id){
-  const codigo = document.getElementById('lt-codigo').value.trim();
-  if(!codigo){ toast('Indica un código de lote','err'); return; }
-  const lotes = dbGet('lotes');
-  if(lotes.some(l=>l.codigo===codigo && l.id!==id)){ toast('Ya existe un lote con ese código','err'); return; }
-  const data = {
-    id: id||nextId(lotes), codigo,
-    cultivo: document.getElementById('lt-cultivo').value,
-    invernadero: document.getElementById('lt-invernadero').value,
-    fecha_siembra: document.getElementById('lt-siembra').value,
-    fecha_recoleccion: document.getElementById('lt-recoleccion').value,
-    certificacion: document.getElementById('lt-certificacion').value,
-    notas: document.getElementById('lt-notas').value
-  };
-  try{
-    if(id){ await sbUpdate('lotes', id, data); const i=lotes.findIndex(l=>l.id===id); lotes[i]=data; }
-    else{ const saved=await sbInsert('lotes', data); CACHE.lotes=[...lotes, saved]; }
-    closeModal(); renderLotes(); toast('✅ Lote guardado');
-  }catch(e){ toast('Error: '+e.message+' — ¿existe la tabla "lotes" en Supabase?','err'); }
-}
-
-async function delLote(id){
-  if(!confirm('¿Eliminar este lote?')) return;
-  try{ await sbDelete('lotes', id); CACHE.lotes=dbGet('lotes').filter(l=>l.id!==id); renderLotes(); toast('Eliminado','info'); }
-  catch(e){ toast('Error: '+e.message,'err'); }
-}
-
-// ════════════════════════════════════════════════════
-//  RECOMENDACIONES — derivadas del histórico, sin tablas nuevas
-// ════════════════════════════════════════════════════
-function renderInteligencia(){
-  const facts = dbGet('facturas');
-  const anio = new Date().getFullYear();
-  const anioAnt = anio-1;
-  const finHoy = today();
-  const mismoTramoAnt = `${anioAnt}-${finHoy.slice(5)}`;
-
-  // ── Cultivos: margen y tendencia ──
-  const cultivos = CULTIVOS.map(c=>c.nombre);
-  const filasCultivo = cultivos.map(c=>{
-    const factsC = facts.filter(f=>f.cultivo===c && f.fecha?.slice(0,4)===String(anio));
-    const factsCAnt = facts.filter(f=>f.cultivo===c && f.fecha?.slice(0,4)===String(anioAnt) && f.fecha<=mismoTramoAnt);
-    const ing = factsC.filter(f=>f.tipo==='C').reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-    const gas = factsC.filter(f=>f.tipo==='P').reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-    const ingAnt = factsCAnt.filter(f=>f.tipo==='C').reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-    if(ing<=0 && gas<=0) return null;
-    const margenPct = ing>0 ? ((ing-gas)/ing*100) : -100;
-    const tendencia = ingAnt>0 ? ((ing-ingAnt)/ingAnt*100) : (ing>0?100:0);
-    let reco;
-    if(margenPct>=30 && tendencia>=0) reco = '🔼 Aumentar superficie — buen margen y creciendo';
-    else if(margenPct>=15) reco = '➡️ Mantener — margen razonable';
-    else if(margenPct>=0) reco = '⚠️ Revisar costes — margen ajustado';
-    else reco = '🔽 Reconsiderar — margen negativo';
-    return { cultivo:c, margenPct, tendencia, reco };
-  }).filter(Boolean).sort((a,b)=>b.margenPct-a.margenPct);
-  document.getElementById('reco-cultivos-tbody').innerHTML = filasCultivo.length ? filasCultivo.map(f=>`
-    <tr><td><strong>${iconoCultivo(f.cultivo)} ${f.cultivo}</strong></td>
-    <td style="color:${f.margenPct>=0?'var(--green)':'var(--red)'}">${f.margenPct.toFixed(1)}%</td>
-    <td style="color:${f.tendencia>=0?'var(--green)':'var(--red)'}">${f.tendencia>=0?'▲':'▼'} ${Math.abs(f.tendencia).toFixed(1)}%</td>
-    <td>${f.reco}</td></tr>
-  `).join('') : '<tr><td colspan="4" style="color:var(--text-s)">Aún no hay suficiente histórico para comparar.</td></tr>';
-
-  // ── Clientes en crecimiento ──
-  const clientes = dbGet('clientes');
-  const filasClientes = clientes.map(cli=>{
-    const total = facts.filter(f=>f.tipo==='C'&&f.cliId===cli.id&&f.fecha?.slice(0,4)===String(anio)).reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-    const totalAnt = facts.filter(f=>f.tipo==='C'&&f.cliId===cli.id&&f.fecha?.slice(0,4)===String(anioAnt)&&f.fecha<=mismoTramoAnt).reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-    if(total<=0 && totalAnt<=0) return null;
-    const variacion = totalAnt>0 ? ((total-totalAnt)/totalAnt*100) : (total>0?100:0);
-    return { nombre: cli.nombre, total, totalAnt, variacion };
-  }).filter(Boolean).sort((a,b)=>b.variacion-a.variacion).slice(0,12);
-  document.getElementById('reco-clientes-tbody').innerHTML = filasClientes.length ? filasClientes.map(f=>`
-    <tr><td><strong>${f.nombre}</strong></td><td>${eur(f.total)}</td><td>${eur(f.totalAnt)}</td>
-    <td style="color:${f.variacion>=0?'var(--green)':'var(--red)'}">${f.variacion>=0?'▲':'▼'} ${Math.abs(f.variacion).toFixed(1)}%</td></tr>
-  `).join('') : '<tr><td colspan="4" style="color:var(--text-s)">Sin datos suficientes todavía.</td></tr>';
-
-  // ── Previsión de demanda (media de los últimos 3 meses con datos, por cliente+producto) ──
-  const hoy = new Date();
-  const mesesRecientes = [0,1,2,3,4,5].map(i=>{ const d=new Date(hoy.getFullYear(), hoy.getMonth()-i, 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; });
-  const combo = {}; // clave: cliId|desc → {nombre, desc, cantidades: {mes: total}}
-  facts.filter(f=>f.tipo==='C' && mesesRecientes.includes((f.fecha||'').slice(0,7))).forEach(f=>{
-    const mes = f.fecha.slice(0,7);
-    (f.lineas||[]).forEach(l=>{
-      const key = f.cliId+'|'+(l.desc||'');
-      if(!combo[key]) combo[key] = { cliId:f.cliId, desc:l.desc, cantidades:{} };
-      combo[key].cantidades[mes] = (combo[key].cantidades[mes]||0) + (parseFloat(l.uds)||0);
-    });
-  });
-  const filasPrevision = Object.values(combo).map(c=>{
-    const valores = Object.values(c.cantidades);
-    const mesesConDatos = valores.length;
-    if(mesesConDatos<2) return null; // hace falta algo de histórico
-    const media = valores.reduce((a,b)=>a+b,0)/mesesConDatos;
-    return { cliente: getCliName(c.cliId), producto: c.desc, media, prevision: media };
-  }).filter(Boolean).sort((a,b)=>b.prevision-a.prevision).slice(0,20);
-  document.getElementById('reco-prevision-tbody').innerHTML = filasPrevision.length ? filasPrevision.map(f=>`
-    <tr><td>${f.cliente}</td><td>${f.producto}</td><td>${f.media.toFixed(1)}</td><td><strong>${f.prevision.toFixed(1)}</strong></td></tr>
-  `).join('') : '<tr><td colspan="4" style="color:var(--text-s)">Necesitas al menos 2 meses de histórico por cliente/producto para estimar.</td></tr>';
-}
-
-// ════════════════════════════════════════════════════
-//  IMPACTO ECOLÓGICO — estimaciones orientativas
-// ════════════════════════════════════════════════════
-function renderImpacto(){
-  const facts = dbGet('facturas').filter(f=>f.tipo==='C');
-  const ventasTienda = dbGet('ventas_tienda');
-  let kgTotal = 0;
-  facts.forEach(f=>(f.lineas||[]).forEach(l=>{ kgTotal += parseFloat(l.uds)||0; }));
-  ventasTienda.forEach(v=>(v.lineas||[]).forEach(l=>{ kgTotal += parseFloat(l.cantidad ?? l.uds)||0; }));
-
-  const KM_POR_KG = 2;      // km evitados estimados por kg vendido en local (asunción editable)
-  const CO2_POR_KG = 0.3;   // kg CO2 evitados estimados por kg eco vs. convencional (asunción editable)
-  const kmEvitados = kgTotal*KM_POR_KG;
-  const co2Evitado = kgTotal*CO2_POR_KG;
-
-  document.getElementById('impacto-kpis').innerHTML = `
-    <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-l)"><div class="kpi-icon">🥬</div><div><div class="kpi-label">Kg vendidos en ecológico</div><div class="kpi-value">${kgTotal.toFixed(0)} kg</div></div></div>
-    <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-l)"><div class="kpi-icon">🚚</div><div><div class="kpi-label">Km de transporte evitados (est.)</div><div class="kpi-value">${kmEvitados.toLocaleString('es-ES',{maximumFractionDigits:0})} km</div></div></div>
-    <div class="kpi-card" style="--kpi-color:var(--purple,#7b5fd4);--kpi-bg:var(--purple-l,#ece8fb)"><div class="kpi-icon">🌍</div><div><div class="kpi-label">CO₂ evitado (est.)</div><div class="kpi-value">${co2Evitado.toFixed(0)} kg</div></div></div>
-  `;
-  document.getElementById('impacto-resumen').innerHTML = `
-    Rural EcoLab SL ha comercializado <strong>${kgTotal.toFixed(0)} kg</strong> de producción hortícola <strong>certificada ecológica (COPAE)</strong>,
-    cultivada en Asturias sin transporte de larga distancia ni importación.<br><br>
-    Estimamos que esto ha evitado del orden de <strong>${kmEvitados.toLocaleString('es-ES',{maximumFractionDigits:0})} km</strong> de transporte
-    y unos <strong>${co2Evitado.toFixed(0)} kg de CO₂</strong> frente al circuito convencional de importación.<br><br>
-    <span style="color:var(--text-s);font-size:12px">(Estimación orientativa — basada en ${KM_POR_KG} km y ${CO2_POR_KG} kg CO₂ evitados por kg vendido en local. Ajusta estos factores si tienes datos propios de tu estudio de huella de carbono.)</span>
-  `;
-}
-
-async function descargarImpactoPDF(){
-  try{
-    const {jsPDF} = window.jspdf;
-    const doc = new jsPDF();
-    const c = dbGet('config',{});
-    const facts = dbGet('facturas').filter(f=>f.tipo==='C');
-    const ventasTienda = dbGet('ventas_tienda');
-    let kgTotal = 0;
-    facts.forEach(f=>(f.lineas||[]).forEach(l=>{ kgTotal += parseFloat(l.uds)||0; }));
-    ventasTienda.forEach(v=>(v.lineas||[]).forEach(l=>{ kgTotal += parseFloat(l.cantidad ?? l.uds)||0; }));
-    const kmEvitados = kgTotal*2, co2Evitado = kgTotal*0.3;
-
-    let y = 20;
-    try{ doc.addImage(LOGO_RURALECOLAB_PNG,'PNG',14,y,42,42*387/600); }catch(e){}
-    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(47,74,60);
-    doc.text('Impacto Ecológico', 65, y+16);
-    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90);
-    doc.text(c.nombre||'Rural EcoLab SL', 65, y+24);
-    doc.setTextColor(0);
-    y += 45;
-    doc.setDrawColor(200); doc.line(14,y,196,y); y+=12;
-
-    doc.setFontSize(13); doc.setFont('helvetica','bold');
-    doc.text(`🥬 ${kgTotal.toFixed(0)} kg vendidos en producción ecológica certificada`, 14, y); y+=10;
-    doc.text(`🚚 ${kmEvitados.toLocaleString('es-ES',{maximumFractionDigits:0})} km de transporte evitados (estimado)`, 14, y); y+=10;
-    doc.text(`🌍 ${co2Evitado.toFixed(0)} kg de CO₂ evitados (estimado)`, 14, y); y+=16;
-
-    doc.setFont('helvetica','normal'); doc.setFontSize(10);
-    const texto = `Rural EcoLab SL cultiva y comercializa hortalizas con certificación ecológica COPAE en Asturias, sin transporte de larga distancia ni importación. Estas cifras son una estimación orientativa del ahorro en transporte y emisiones frente al circuito convencional de importación de hortalizas.`;
-    const lineas = doc.splitTextToSize(texto, 182);
-    doc.text(lineas, 14, y); y += lineas.length*5+10;
-
-    doc.setFontSize(8); doc.setTextColor(140);
-    doc.text('Estimación orientativa, no constituye una auditoría de huella de carbono certificada.', 14, y);
-    doc.setTextColor(0);
-
-    doc.save('impacto_ecologico_ruralecolab.pdf');
-    toast('✅ Panel de impacto generado');
-  }catch(e){ toast('Error al generar el PDF: '+e.message,'err'); }
-}
-
 function renderFP(){
   let facts=dbGet('facturas').filter(f=>f.tipo==='P');
   if(fpFilter) facts=facts.filter(f=>f.estado===fpFilter);
@@ -2527,7 +2028,6 @@ function renderFP(){
     <td style="display:flex;gap:4px">
       <button class="btn btn-sm btn-icon" onclick="editFactura(${f.id})">✏️</button>
       <button class="btn btn-sm btn-icon" title="Descargar PDF" onclick="descargarFacturaPDF(${f.id})">📄</button>
-      <button class="btn btn-sm btn-icon" title="Enviar por email" onclick="enviarFacturaPorEmail(${f.id})">📧</button>
       ${f.estado==='pendiente'?`<button class="btn btn-sm btn-icon" title="Marcar pagado" onclick="marcarPagado(${f.id})">✅</button>`:''}
       <button class="btn btn-sm btn-icon" onclick="deleteFactura(${f.id})">🗑</button>
     </td></tr>
@@ -2552,7 +2052,6 @@ function renderFC(){
     <td style="display:flex;gap:4px">
       <button class="btn btn-sm btn-icon" onclick="editFactura(${f.id})">✏️</button>
       <button class="btn btn-sm btn-icon" title="Descargar PDF" onclick="descargarFacturaPDF(${f.id})">📄</button>
-      <button class="btn btn-sm btn-icon" title="Enviar por email" onclick="enviarFacturaPorEmail(${f.id})">📧</button>
       ${f.num && !f.esRectificativa && !f.rectificadaPor ? `<button class="btn btn-sm btn-icon" title="Rectificar (abono)" onclick="abrirRectificarFactura(${f.id})">🔄</button>` : ''}
       ${f.estado==='pendiente'?`<button class="btn btn-sm btn-icon" onclick="marcarPagado(${f.id})">✅</button>`:''}
       <button class="btn btn-sm btn-icon" onclick="deleteFactura(${f.id})">🗑</button>
@@ -2656,8 +2155,7 @@ function renderModalCostesCultivo(cultivo){
     .map(([cat,imp])=>`<span class="badge badge-blue" style="margin:2px">${cat}: ${eur(imp)}</span>`).join(' ') || '<span style="color:var(--text-s)">Sin costes todavía</span>';
 
   const filas = costes.map(c=>`
-    <tr><td>${fmtDate(c.fecha)}</td><td><span class="badge badge-grey">${c.categoria}</span></td>
-    <td>${c.concepto||'—'} ${c.origen==='material'?'<span class=\"badge badge-blue\" title=\"Generado desde Materiales → Usar en cultivo\">🧪 material</span>':'<span class=\"badge badge-grey\" title=\"Añadido a mano\">✍️ manual</span>'}</td>
+    <tr><td>${fmtDate(c.fecha)}</td><td><span class="badge badge-grey">${c.categoria}</span></td><td>${c.concepto||'—'}</td>
     <td><strong>${eur(c.importe)}</strong></td>
     <td><button class="btn btn-sm btn-icon" onclick="delCosteCultivo(${c.id},'${cultivo}')">🗑</button></td></tr>
   `).join('') || '<tr><td colspan="5" style="color:var(--text-s)">Todavía no hay costes detallados para este cultivo.</td></tr>';
@@ -2672,7 +2170,6 @@ function renderModalCostesCultivo(cultivo){
       <div class="form-group"><label>Importe (€)</label><input class="input" id="cc-importe" type="number" step="0.01"></div>
       <div class="form-group" style="display:flex;align-items:flex-end"><button class="btn btn-primary" style="width:100%" onclick="anadirCosteCultivo('${cultivo}')">+ Añadir coste</button></div>
     </div>
-    <p style="font-size:12px;color:var(--text-s);margin-top:-4px">Los marcados 🧪 vienen de Materiales → "Usar en cultivo" — si vas a apuntar la compra de un material, mejor usa ese botón en vez de añadirlo aquí a mano, para no contarlo dos veces.</p>
     <div style="margin-bottom:10px">${resumenCats}</div>
     <div class="table-wrap" style="max-height:280px;overflow:auto">
       <table><thead><tr><th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Importe</th><th></th></tr></thead><tbody>${filas}</tbody></table>
@@ -2688,17 +2185,8 @@ async function anadirCosteCultivo(cultivo){
   const importe = parseFloat(document.getElementById('cc-importe').value)||0;
   if(!fecha){ toast('Indica la fecha','err'); return; }
   if(importe<=0){ toast('Indica un importe','err'); return; }
-
-  // Aviso de posible duplicado: ¿ya hay un coste "de material" el mismo día,
-  // mismo cultivo y misma categoría? (indicio de que ya se registró por Materiales)
-  const posibleDuplicado = dbGet('costes_cultivo').find(c=>
-    c.cultivo===cultivo && c.categoria===categoria && c.fecha===fecha && c.origen==='material');
-  if(posibleDuplicado){
-    if(!confirm(`Ya hay un coste de "${categoria}" registrado ese día desde Materiales ("${posibleDuplicado.concepto}"). ¿Seguro que este no es el mismo gasto duplicado?`)) return;
-  }
-
   const registros = dbGet('costes_cultivo');
-  const data = { id: nextId(registros), cultivo, categoria, concepto, importe, fecha, origen:'manual' };
+  const data = { id: nextId(registros), cultivo, categoria, concepto, importe, fecha };
   try{
     const saved = await sbInsert('costes_cultivo', data);
     CACHE.costes_cultivo = [...registros, saved];
@@ -2752,7 +2240,7 @@ async function confirmarUsarMaterialEnCultivo(matId){
     await sbUpdate('materiales', matId, {stock:nuevoStock});
     const i=CACHE.materiales.findIndex(x=>x.id===matId); if(i>=0) CACHE.materiales[i].stock=nuevoStock;
     const registros = dbGet('costes_cultivo');
-    const data = { id: nextId(registros), cultivo, categoria: m.cat||'Otros', concepto:`Uso de ${m.nombre} (${cantidad} ${m.unidad||''})`, importe, fecha, origen:'material', materialId:matId };
+    const data = { id: nextId(registros), cultivo, categoria: m.cat||'Otros', concepto:`Uso de ${m.nombre} (${cantidad} ${m.unidad||''})`, importe, fecha };
     const saved = await sbInsert('costes_cultivo', data);
     CACHE.costes_cultivo = [...registros, saved];
     closeModal();
@@ -2859,7 +2347,7 @@ async function confirmarRepartoCosteCultivos(){
   const registros = dbGet('costes_cultivo');
   for(const [cultivo,parte] of Object.entries(reparto)){
     if(parte<=0) continue;
-    const data = { id: nextId(registros)+ok, cultivo, categoria, concepto: `${concepto} (reparto ${metodo==='igual'?'igual':metodo==='ingresos'?'por ingresos':'manual'})`, importe: parte, fecha, origen:'manual' };
+    const data = { id: nextId(registros)+ok, cultivo, categoria, concepto: `${concepto} (reparto ${metodo==='igual'?'igual':metodo==='ingresos'?'por ingresos':'manual'})`, importe: parte, fecha };
     try{ const saved = await sbInsert('costes_cultivo', data); registros.push(saved); ok++; }
     catch(e){ console.warn('Error repartiendo a', cultivo, e.message); }
   }
@@ -2960,10 +2448,10 @@ function renderRentabilidad(){
   const margen=ing-gas;
   const pct=ing>0?(margen/ing*100).toFixed(1):0;
 
-  // Rentabilidad REAL de la empresa: incluye también lo vendido en Tienda
-  // (Ticket Tienda + TPV), que no está ligado a ningún cultivo y por eso no
-  // entra en el desglose de abajo.
-  const ingTienda=ingresosTiendaEnRango(`${anio}-01-01`,`${anio}-12-31`);
+  // Rentabilidad REAL de la empresa: incluye también lo vendido en Tienda,
+  // que no está ligado a ningún cultivo y por eso no entra en el desglose de abajo.
+  const ventasTiendaAnio=dbGet('ventas_tienda').filter(v=>v.fecha?.startsWith(anio));
+  const ingTienda=ventasTiendaAnio.reduce((s,v)=>s+(parseFloat(v.total)||0),0);
   const ingTotalEmpresa=ing+ingTienda;
   const margenEmpresa=ingTotalEmpresa-gas;
   const pctEmpresa=ingTotalEmpresa>0?(margenEmpresa/ingTotalEmpresa*100).toFixed(1):0;
@@ -2976,7 +2464,7 @@ function renderRentabilidad(){
   `;
   const rentEmpresaCont=document.getElementById('rent-empresa-kpis');
   if(rentEmpresaCont) rentEmpresaCont.innerHTML=`
-    <div class="kpi-card" style="--kpi-color:var(--purple,#7b5fd4);--kpi-bg:var(--purple-l,#ece8fb)"><div class="kpi-icon">🏪</div><div><div class="kpi-label">+ Ingresos Tienda (ticket + TPV)</div><div class="kpi-value">${eur(ingTienda)}</div></div></div>
+    <div class="kpi-card" style="--kpi-color:var(--purple,#7b5fd4);--kpi-bg:var(--purple-l,#ece8fb)"><div class="kpi-icon">🏪</div><div><div class="kpi-label">+ Ingresos Tienda</div><div class="kpi-value">${eur(ingTienda)}</div></div></div>
     <div class="kpi-card" style="--kpi-color:var(--green-d,#1B5E20);--kpi-bg:var(--green-l)"><div class="kpi-icon">🧮</div><div><div class="kpi-label">Ingresos totales empresa</div><div class="kpi-value">${eur(ingTotalEmpresa)}</div></div></div>
     <div class="kpi-card" style="--kpi-color:${margenEmpresa>=0?'var(--green)':'var(--red)'};--kpi-bg:${margenEmpresa>=0?'var(--green-l)':'var(--red-l)'}"><div class="kpi-icon">💰</div><div><div class="kpi-label">Margen REAL de empresa</div><div class="kpi-value">${eur(margenEmpresa)}</div></div></div>
     <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-l)"><div class="kpi-icon">%</div><div><div class="kpi-label">Rentabilidad REAL</div><div class="kpi-value">${pctEmpresa}%</div></div></div>
@@ -2995,23 +2483,6 @@ function renderRentabilidad(){
   chMargen=new Chart(document.getElementById('ch-margen'),{type:'bar',data:{labels:cultivos,datasets:[{label:'Margen',data:cultivos.map((c,i)=>cIng[i]-cGas[i]),backgroundColor:cultivos.map((c,i)=>cIng[i]-cGas[i]>=0?'rgba(46,125,50,.7)':'rgba(229,57,53,.7)')}]},options:{responsive:true,plugins:{legend:{display:false}}}});
   if(chIngGas) chIngGas.destroy();
   chIngGas=new Chart(document.getElementById('ch-ing-gas'),{type:'bar',data:{labels:cultivos,datasets:[{label:'Ingresos',data:cIng,backgroundColor:'rgba(46,125,50,.7)'},{label:'Gastos',data:cGas,backgroundColor:'rgba(229,57,53,.7)'}]},options:{responsive:true,plugins:{legend:{position:'top'}}}});
-
-  // ── Rentabilidad por cliente ──
-  const clientes = dbGet('clientes');
-  const factsCliAnio = filtered.filter(f=>f.tipo==='C');
-  const filasCliente = clientes.map(cli=>{
-    const fs = factsCliAnio.filter(f=>f.cliId===cli.id);
-    if(!fs.length) return null;
-    const total = fs.reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-    const productos = {};
-    fs.forEach(f=>(f.lineas||[]).forEach(l=>{ productos[l.desc]=(productos[l.desc]||0)+(parseFloat(l.imp)||0); }));
-    const topProducto = Object.entries(productos).sort((a,b)=>b[1]-a[1])[0];
-    return { nombre: cli.nombre, canal: labelCanal(cli.cat), nFacturas: fs.length, total, ticketMedio: total/fs.length, topProducto: topProducto?topProducto[0]:'—' };
-  }).filter(Boolean).sort((a,b)=>b.total-a.total);
-  document.getElementById('rent-cliente-tbody').innerHTML = filasCliente.length ? filasCliente.map(f=>`
-    <tr><td><strong>${f.nombre}</strong></td><td><span class="badge badge-blue">${f.canal}</span></td>
-    <td>${f.nFacturas}</td><td><strong>${eur(f.total)}</strong></td><td>${eur(f.ticketMedio)}</td><td>${f.topProducto}</td></tr>
-  `).join('') : '<tr><td colspan="6" style="color:var(--text-s)">Sin facturas de cliente este año.</td></tr>';
 }
 
 // ════════════════════════════════════════════════════
@@ -3185,24 +2656,15 @@ let carritoTienda = [];
 function renderTienda(){
   const cont = document.getElementById('tienda-catalogo');
   const prods = dbGet('productos');
-  const esUrl = (v) => /^(https?:)?\/\//.test(v||'') || /^data:image/.test(v||'');
   cont.innerHTML = prods.length
-    ? prods.map(p=>{
-        let visual;
-        if(p.imagen && esUrl(p.imagen)){
-          visual = `<img src="${p.imagen}" alt="${p.nombre}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;background:#f2f5f0" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'📦',style:'font-size:34px;width:64px;height:64px;display:flex;align-items:center;justify-content:center'}))">`;
-        } else if(p.imagen){
-          // No es una URL — probablemente un emoji escrito a mano, se muestra tal cual
-          visual = `<div style="font-size:34px;width:64px;height:64px;display:flex;align-items:center;justify-content:center">${p.imagen}</div>`;
-        } else {
-          visual = `<div style="font-size:34px;width:64px;height:64px;display:flex;align-items:center;justify-content:center">📦</div>`;
-        }
-        return `<button onclick="anadirProductoCarrito(${p.id})" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 8px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:center;transition:transform .1s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
-        ${visual}
+    ? prods.map(p=>`
+      <button onclick="anadirProductoCarrito(${p.id})" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 8px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:center;transition:transform .1s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+        ${p.imagen
+          ? `<img src="${p.imagen}" alt="${p.nombre}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;background:#f2f5f0" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'🥬',style:'font-size:34px;width:64px;height:64px;display:flex;align-items:center;justify-content:center'}))">`
+          : `<div style="font-size:34px;width:64px;height:64px;display:flex;align-items:center;justify-content:center">🥬</div>`}
         <div style="font-size:12.5px;font-weight:600;line-height:1.2">${p.nombre}</div>
         <div style="font-size:12px;color:var(--green)">${eur(p.pventa)}/${p.unidad}</div>
-      </button>`;
-      }).join('')
+      </button>`).join('')
     : '<span style="color:var(--text-s)">No hay productos en el catálogo. Añádelos primero en la pestaña "Productos".</span>';
   renderCarritoTienda();
 }
@@ -3212,11 +2674,8 @@ function anadirProductoCarrito(prodId){
   if(!p) return;
   const existente = carritoTienda.find(l=>l.prodId===prodId);
   if(existente) existente.cantidad += 1;
-  else carritoTienda.push({ prodId, nombre:p.nombre, unidad:p.unidad, precio:p.pventa||0, iva:p.iva||10, cantidad:1, cultivo:p.cultivo||'', loteCodigo:'' });
+  else carritoTienda.push({ prodId, nombre:p.nombre, unidad:p.unidad, precio:p.pventa||0, iva:p.iva||10, cantidad:1 });
   renderCarritoTienda();
-}
-function cambiarLoteCarrito(idx, valor){
-  carritoTienda[idx].loteCodigo = valor;
 }
 function cambiarCantidadCarrito(idx, valor){
   const n = parseFloat(valor);
@@ -3237,10 +2696,8 @@ function renderCarritoTienda(){
   const tbody = document.getElementById('tienda-carrito-tbody');
   const vacio = document.getElementById('tienda-carrito-vacio');
   vacio.style.display = carritoTienda.length ? 'none' : 'block';
-  const lotes = dbGet('lotes');
   tbody.innerHTML = carritoTienda.map((l,idx)=>{
     const importe = l.cantidad * l.precio;
-    const lotesCultivo = lotes.filter(lo=>!l.cultivo || lo.cultivo===l.cultivo);
     return `<tr>
       <td>${l.nombre}</td>
       <td style="white-space:nowrap">
@@ -3249,10 +2706,6 @@ function renderCarritoTienda(){
       </td>
       <td>${eur(l.precio)}</td>
       <td><strong>${eur(importe)}</strong></td>
-      <td><select class="select" style="width:130px" onchange="cambiarLoteCarrito(${idx}, this.value)">
-        <option value="">Sin lote</option>
-        ${lotesCultivo.map(lo=>`<option value="${lo.codigo}" ${l.loteCodigo===lo.codigo?'selected':''}>${lo.codigo}</option>`).join('')}
-      </select></td>
       <td><button class="btn btn-sm btn-icon" onclick="eliminarLineaCarrito(${idx})">🗑</button></td>
     </tr>`;
   }).join('');
@@ -3421,8 +2874,7 @@ async function procesarAlbaranesPendientesSubida(fileList){
         fecha: d.fecha || today(),
         numAlbaran: d.albaran || '',
         lineas: (d.lineas||[]).map(l=>({desc:l.desc||'', uds:parseFloat(l.uds)||1, precio:parseFloat(l.precio)||0, imp:parseFloat(l.imp)||(parseFloat(l.uds)||1)*(parseFloat(l.precio)||0)})),
-        cliId: (buscarEntidadPorNombreONif(dbGet('clientes'), d.cliente_nombre, d.cliente_nif) || {}).id
-          ?? detectarClienteEnTexto(d.cliente_nombre || d._textoCrudo || '')
+        cliId: detectarClienteEnTexto(d.cliente_nombre || d._textoCrudo || '')
       });
     }catch(e){
       console.warn('Error OCR', file.name, e.message);
@@ -3438,15 +2890,7 @@ function renderRevisionAlbaranesPendientes(){
   const cont = document.getElementById('ap-revision-lista');
   bloque.style.display = revisionAlbaranesPendientes.length ? 'block' : 'none';
   const clientes = dbGet('clientes');
-  cont.innerHTML = revisionAlbaranesPendientes.map((r,idx)=>{
-    const filasLineas = r.lineas.map((l,li)=>`
-      <tr>
-        <td><input class="input" value="${l.desc||''}" onchange="revisionAlbaranesPendientes[${idx}].lineas[${li}].desc=this.value"></td>
-        <td><input class="input" type="number" step="0.01" style="width:70px" value="${l.uds||1}" onchange="revisionAlbaranesPendientes[${idx}].lineas[${li}].uds=parseFloat(this.value)||0"></td>
-        <td><input class="input" type="number" step="0.01" style="width:80px" value="${l.precio||0}" onchange="revisionAlbaranesPendientes[${idx}].lineas[${li}].precio=parseFloat(this.value)||0"></td>
-        <td><button class="btn btn-sm btn-icon" onclick="revisionAlbaranesPendientes[${idx}].lineas.splice(${li},1);renderRevisionAlbaranesPendientes()">🗑</button></td>
-      </tr>`).join('');
-    return `
+  cont.innerHTML = revisionAlbaranesPendientes.map((r,idx)=>`
     <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
         <div class="form-group" style="margin:0;flex:2;min-width:180px"><label>Cliente${r.cliId?' (detectado)':' — revisa, no detectado'}</label>
@@ -3460,22 +2904,16 @@ function renderRevisionAlbaranesPendientes(){
         <button class="btn btn-secondary btn-sm" onclick="guardarAlbaranPendienteIndividual(${idx})">💾 Guardar este</button>
         <button class="btn btn-sm btn-icon" onclick="revisionAlbaranesPendientes.splice(${idx},1);renderRevisionAlbaranesPendientes()">🗑</button>
       </div>
-      <div style="font-size:12px;color:var(--text-s);margin:8px 0 4px">${r.archivo}${r.error?' — ⚠ '+r.error:''}</div>
-      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th></th></tr></thead>
-      <tbody>${filasLineas || '<tr><td colspan="4" style="color:var(--text-s)">Sin líneas detectadas — añade una a mano abajo.</td></tr>'}</tbody></table></div>
-      <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="revisionAlbaranesPendientes[${idx}].lineas.push({desc:'',uds:1,precio:0});renderRevisionAlbaranesPendientes()">+ Añadir línea</button>
+      <div style="font-size:12px;color:var(--text-s);margin-top:6px">${r.archivo} — ${r.lineas.length} línea(s) detectada(s)${r.error?' — ⚠ '+r.error:''}</div>
     </div>
-  `;
-  }).join('');
+  `).join('');
 }
 
 async function guardarAlbaranPendienteIndividual(idx){
   const r = revisionAlbaranesPendientes[idx];
   if(!r.cliId){ toast('Elige el cliente de este albarán','err'); return; }
-  const lineas = r.lineas.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0)}));
-  if(!lineas.length){ toast('Añade al menos una línea con descripción','err'); return; }
   const registros = dbGet('albaranes_pendientes');
-  const data = { id: nextId(registros), fecha:r.fecha, numAlbaran:r.numAlbaran, cliId:r.cliId, lineas, facturado:false, facturaId:null, archivo:r.archivo };
+  const data = { id: nextId(registros), fecha:r.fecha, numAlbaran:r.numAlbaran, cliId:r.cliId, lineas:r.lineas, facturado:false, facturaId:null, archivo:r.archivo };
   try{
     const saved = await sbInsert('albaranes_pendientes', data);
     CACHE.albaranes_pendientes = [...(CACHE.albaranes_pendientes||[]), saved];
@@ -4049,7 +3487,7 @@ function formProducto(id){
   openModal(id?'Editar Producto':'Nuevo Producto',`
     <div class="form-grid">
       <div class="form-group full"><label>Nombre del producto</label><input class="input" id="pp-nombre" value="${p.nombre||''}" placeholder="Ej: Tomate Fuxia™ (kg)"></div>
-      <div class="form-group full"><label>Imagen (opcional — pega una URL de foto, o escribe directamente un emoji como 🍅)</label><input class="input" id="pp-imagen" value="${p.imagen||''}" placeholder="https://... o 🍅"></div>
+      <div class="form-group full"><label>Imagen (URL, opcional — para la pantalla de Tienda)</label><input class="input" id="pp-imagen" value="${p.imagen||''}" placeholder="https://..."></div>
       <div class="form-group"><label>Cultivo</label><select class="select" id="pp-cultivo">
         ${opcionesCultivo(p.cultivo)}
       </select></div>
@@ -4411,62 +3849,6 @@ async function descargarInformeMedidaExcel(){
   toast('✅ Informe descargado');
 }
 
-// ════════════════════════════════════════════════════
-//  LIBRO DE IVA (trimestral) — repercutido y soportado,
-//  formato listo para el modelo 303 o para tu gestoría.
-// ════════════════════════════════════════════════════
-async function exportLibroIVA(){
-  const trimestre = parseInt(document.getElementById('iva-trimestre').value);
-  const anio = document.getElementById('iva-anio').value;
-  const mesIni = (trimestre-1)*3+1, mesFin = trimestre*3;
-  const desde = `${anio}-${String(mesIni).padStart(2,'0')}-01`;
-  const hasta = `${anio}-${String(mesFin).padStart(2,'0')}-31`;
-
-  // Las rectificativas SÍ se incluyen (con importes en negativo) — se declaran en el
-  // trimestre en que se EMITEN, no corrigen retroactivamente el trimestre original.
-  const facts = dbGet('facturas').filter(f=>f.fecha>=desde && f.fecha<=hasta);
-  const repercutido = facts.filter(f=>f.tipo==='C').sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-  const soportado = facts.filter(f=>f.tipo==='P').sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-
-  if(!repercutido.length && !soportado.length){ toast(`No hay facturas en ${trimestre}T de ${anio}`,'err'); return; }
-
-  const headers = ['Fecha','Nº Factura','Tipo doc.','NIF/CIF','Nombre','Base Imponible','% IVA','Cuota IVA','Recargo Eq.','Total'];
-  const filasRep = repercutido.map(f=>{
-    const c = getCli(f.cliId);
-    return [fmtDate(f.fecha), f.num||'(sin numerar)', f.esRectificativa?'Rectificativa':'Normal', c.nif||'', c.nombre||'', f.base||0, f.iva||0, f.ivaImp||0, f.reImp||0, f.total||0];
-  });
-  const totalBaseRep = repercutido.reduce((s,f)=>s+(parseFloat(f.base)||0),0);
-  const totalIvaRep = repercutido.reduce((s,f)=>s+(parseFloat(f.ivaImp)||0),0);
-  const totalRep = repercutido.reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-  filasRep.push([]);
-  filasRep.push(['TOTAL REPERCUTIDO','','','','', totalBaseRep, '', totalIvaRep, '', totalRep]);
-
-  const filasSop = soportado.map(f=>{
-    const p = getProv(f.provId);
-    return [fmtDate(f.fecha), f.num||'', 'Normal', p.nif||'', p.nombre||'', f.base||0, f.iva||0, f.ivaImp||0, f.reImp||0, f.total||0];
-  });
-  const totalBaseSop = soportado.reduce((s,f)=>s+(parseFloat(f.base)||0),0);
-  const totalIvaSop = soportado.reduce((s,f)=>s+(parseFloat(f.ivaImp)||0),0);
-  const totalSop = soportado.reduce((s,f)=>s+(parseFloat(f.total)||0),0);
-  filasSop.push([]);
-  filasSop.push(['TOTAL SOPORTADO','','','','', totalBaseSop, '', totalIvaSop, '', totalSop]);
-
-  const resumen = [
-    ['Concepto','Base','Cuota IVA'],
-    ['IVA Repercutido (ventas, incl. rectificativas)', totalBaseRep, totalIvaRep],
-    ['IVA Soportado (compras)', totalBaseSop, totalIvaSop],
-    ['DIFERENCIA A INGRESAR/COMPENSAR', totalBaseRep-totalBaseSop, totalIvaRep-totalIvaSop]
-  ];
-
-  const wb = new ExcelJS.Workbook();
-  hojaEstilizada(wb, `Resumen ${trimestre}T ${anio}`, resumen[0], resumen.slice(1), {colsMoneda:[2,3]});
-  hojaEstilizada(wb, 'IVA Repercutido', headers, filasRep, {colsMoneda:[6,8,9,10], colsCentrado:[1,2,3,7], filasDestacadas:[filasRep.length-1]});
-  hojaEstilizada(wb, 'IVA Soportado', headers, filasSop, {colsMoneda:[6,8,9,10], colsCentrado:[1,2,3,7], filasDestacadas:[filasSop.length-1]});
-
-  await descargarWorkbook(wb, `libro_iva_${trimestre}T_${anio}.xlsx`);
-  toast(`✅ Libro de IVA ${trimestre}T ${anio} generado (incluye rectificativas si las hay)`);
-}
-
 function renderReportes(){
   const facts=dbGet('facturas');
   const m=new Date().getMonth();
@@ -4479,14 +3861,6 @@ function renderReportes(){
   document.getElementById('r-bmes').textContent=eur(imes-gmes);
   const repMes=document.getElementById('rep-mes');
   if(repMes && !repMes.value) repMes.value = today().slice(0,7);
-
-  const ivaAnioSel = document.getElementById('iva-anio');
-  if(ivaAnioSel && !ivaAnioSel.options.length){
-    const years = [...new Set(facts.map(f=>f.fecha?.split('-')[0]))].filter(Boolean).sort().reverse();
-    if(!years.length) years.push(String(anio));
-    ivaAnioSel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
-    document.getElementById('iva-trimestre').value = String(Math.floor(m/3)+1);
-  }
 }
 
 // ════════════════════════════════════════════════════
@@ -5317,31 +4691,6 @@ async function modalOcrProcess(file,tipo){
 
 
 
-// Emparejamiento robusto por NIF (más fiable) o por nombre completo,
-// ignorando el nombre comercial entre paréntesis. Se usa tanto para
-// proveedores como para clientes al aplicar los datos de OCR/Mindee.
-function buscarEntidadPorNombreONif(lista, nombre, nif){
-  const nifNorm = (nif||'').toUpperCase().replace(/[\s\-]/g,'');
-  if(nifNorm){
-    const porNif = lista.find(e => (e.nif||'').toUpperCase().replace(/[\s\-]/g,'') === nifNorm);
-    if(porNif) return porNif;
-  }
-  const t = (nombre||'').toUpperCase().trim();
-  if(!t) return null;
-  let match = lista.find(e => e.nombre && t.includes(e.nombre.toUpperCase()));
-  if(match) return match;
-  match = lista.find(e=>{
-    const base = (e.nombre||'').split('(')[0].trim().toUpperCase();
-    return base.length>=3 && t.includes(base);
-  });
-  if(match) return match;
-  match = lista.find(e=>{
-    const nombreEntidad = (e.nombre||'').toUpperCase();
-    return t.length>=3 && nombreEntidad.includes(t);
-  });
-  return match || null;
-}
-
 function applyOcrToForm(){
   if(!ocrData) return;
   const d=ocrData.datos;
@@ -5367,24 +4716,29 @@ function applyOcrToForm(){
       const v=String(d.iva_pct);
       if([...sel.options].some(o=>o.value===v)) sel.value=v;
     }
-    // Proveedor por NIF (más fiable) o por nombre completo (sin el nombre comercial entre paréntesis)
+    // Proveedor por nombre o NIF
     if(d.proveedor_nombre||d.proveedor_nif){
       const provs=dbGet('proveedores');
-      const match=buscarEntidadPorNombreONif(provs, d.proveedor_nombre, d.proveedor_nif);
+      const nombre=(d.proveedor_nombre||'').toLowerCase().slice(0,8);
+      const nif=(d.proveedor_nif||'').toUpperCase();
+      const match=provs.find(p=>
+        (nif && p.nif===nif) ||
+        (nombre.length>2 && p.nombre.toLowerCase().includes(nombre))
+      );
       if(match){
         document.getElementById('nf-tipo').value='P';
         toggleTipo();
         document.getElementById('nf-prov').value=match.id;
       }
     }
-    if(d.cliente_nombre||d.cliente_nif){
+    if(d.cliente_nombre){
       const clis=dbGet('clientes');
-      const match=buscarEntidadPorNombreONif(clis, d.cliente_nombre, d.cliente_nif);
+      const nombre=d.cliente_nombre.toLowerCase().slice(0,8);
+      const match=clis.find(c=>c.nombre.toLowerCase().includes(nombre));
       if(match){
         document.getElementById('nf-tipo').value='C';
         toggleTipo();
         document.getElementById('nf-cli').value=match.id;
-        actualizarProductosClienteNF();
       }
     }
     // Líneas
