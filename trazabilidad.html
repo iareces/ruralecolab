@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trazabilidad · Rural EcoLab SL</title>
+<style>
+  body{font-family:-apple-system,Helvetica,Arial,sans-serif;background:#F5F7F5;margin:0;padding:24px;color:#22301F}
+  .card{max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+  .logo{display:block;margin:0 auto 20px;height:56px}
+  h1{font-size:20px;color:#1A2E1A;text-align:center;margin:0 0 4px}
+  .sub{text-align:center;color:#6b7a6b;font-size:13px;margin-bottom:24px}
+  .badge{display:inline-block;background:#E8F0E8;color:#2f4a3c;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:16px}
+  .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee;font-size:14px}
+  .row span:first-child{color:#6b7a6b}
+  .row span:last-child{font-weight:600;text-align:right}
+  .notas{margin-top:16px;font-size:13px;color:#444;background:#F5F7F5;padding:12px;border-radius:8px}
+  .footer{text-align:center;margin-top:24px;font-size:11px;color:#999}
+  .error{text-align:center;color:#b5482c;padding:40px 20px}
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <p style="text-align:center;color:#999">Cargando información del lote...</p>
+  </div>
+  <script>
+    const SB_URL = 'https://idbztbdmlcjpzeetpjdt.supabase.co';
+    const SB_KEY = 'sb_publishable_4a8tgrs6V575Eovj4zvzjg_qAHU6I_f';
+    const params = new URLSearchParams(location.search);
+    const codigo = params.get('lote');
+
+    function fmtDate(d){ if(!d) return '—'; const p=d.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : d; }
+
+    async function cargar(){
+      const card = document.getElementById('card');
+      if(!codigo){
+        card.innerHTML = '<div class="error">Falta el código de lote en el enlace.</div>';
+        return;
+      }
+      try{
+        const res = await fetch(`${SB_URL}/rest/v1/lotes?codigo=eq.${encodeURIComponent(codigo)}`, {
+          headers: { apikey: SB_KEY, Authorization: 'Bearer '+SB_KEY }
+        });
+        const rows = await res.json();
+        const l = rows[0];
+        if(!l){
+          card.innerHTML = '<div class="error">No se ha encontrado este lote.</div>';
+          return;
+        }
+        card.innerHTML = `
+          <h1>${l.cultivo}</h1>
+          <div class="sub">Lote ${l.codigo}</div>
+          <div style="text-align:center"><span class="badge">🌿 ${l.certificacion||'Producción Ecológica'}</span></div>
+          <div class="row"><span>Invernadero / Parcela</span><span>${l.invernadero||'—'}</span></div>
+          <div class="row"><span>Fecha de siembra</span><span>${fmtDate(l.fecha_siembra)}</span></div>
+          <div class="row"><span>Fecha de recolección</span><span>${fmtDate(l.fecha_recoleccion)}</span></div>
+          <div class="row"><span>Origen</span><span>Asturias, España</span></div>
+          ${l.notas ? `<div class="notas">${l.notas}</div>` : ''}
+          <div class="footer">Rural EcoLab SL · Producción hortícola ecológica certificada · Asturias</div>
+        `;
+      }catch(e){
+        card.innerHTML = '<div class="error">Error al cargar el lote: '+e.message+'</div>';
+      }
+    }
+    cargar();
+  </script>
+</body>
+</html>
