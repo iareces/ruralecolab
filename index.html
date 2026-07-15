@@ -605,7 +605,8 @@ tr:hover td{background:#FAFCFA}
     <div class="page-header">
       <div class="page-title">Tienda — Nueva venta</div>
       <div class="page-actions">
-        <button class="btn btn-secondary" onclick="verHistorialVentasTienda()">📋 Historial de tickets</button>
+        <button class="btn btn-secondary" onclick="exportTiendaExcelDiasMeses()">📗 Excel por días/meses</button>
+        <button class="btn btn-secondary" onclick="verHistorialVentasTienda()">📋 Ver todos</button>
       </div>
     </div>
     <p id="tienda-aviso-verifactu" style="background:#fff8e6;border:1px solid #e8c766;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#6b5417;margin-bottom:16px">
@@ -640,6 +641,15 @@ tr:hover td{background:#FAFCFA}
         <button class="btn btn-secondary" onclick="vaciarCarritoTienda()">🗑 Vaciar</button>
         <button class="btn btn-primary" onclick="cobrarVentaTienda()">✅ Cobrar y generar ticket</button>
       </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h3 style="margin-top:0">Tickets recientes</h3>
+      <div class="table-wrap">
+        <table><thead><tr><th>Nº Ticket</th><th>Fecha</th><th>Hora</th><th>Pago</th><th>Total</th><th></th></tr></thead>
+        <tbody id="tienda-tickets-recientes-tbody"></tbody></table>
+      </div>
+      <p id="tienda-tickets-vacio" style="color:var(--text-s);padding:10px 0;display:none">Todavía no hay tickets generados.</p>
     </div>
   </section>
 
@@ -747,8 +757,22 @@ tr:hover td{background:#FAFCFA}
     <div class="card"><div class="card-header"><div class="card-title">📋 Por Cultivo</div></div>
       <div class="table-wrap"><table><thead><tr><th>Cultivo</th><th>Ingresos</th><th>Gastos</th><th>Margen €</th><th>Margen %</th></tr></thead><tbody id="rent-tbody"></tbody></table></div>
     </div>
-    <div class="card" style="margin-top:20px"><div class="card-header"><div class="card-title">👥 Rentabilidad por Cliente</div></div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-title">👥 Rentabilidad por Cliente</div>
+        <button class="btn btn-secondary btn-sm" onclick="exportRentabilidadClienteExcel()">📗 Excel</button>
+      </div>
+      <div class="card-body"><canvas id="ch-rent-cliente" height="180"></canvas></div>
       <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Canal</th><th>Nº Facturas</th><th>Total facturado</th><th>Ticket medio</th><th>Producto más comprado</th></tr></thead><tbody id="rent-cliente-tbody"></tbody></table></div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-title">🥕 Rentabilidad por Producto</div>
+        <button class="btn btn-secondary btn-sm" onclick="exportRentabilidadProductoExcel()">📗 Excel</button>
+      </div>
+      <p style="color:var(--text-s);font-size:12px;margin:0 0 10px">El coste de cada producto es una <strong>estimación</strong>: se reparte el gasto de su cultivo entre los productos de ese cultivo, según la parte de ingresos que aporta cada uno — no es un coste de producción exacto por producto.</p>
+      <div class="card-body"><canvas id="ch-rent-producto" height="180"></canvas></div>
+      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Cultivo</th><th>Ingresos</th><th>Coste estimado</th><th>Margen €</th><th>Margen %</th></tr></thead><tbody id="rent-producto-tbody"></tbody></table></div>
     </div>
   </section>
 
@@ -833,6 +857,10 @@ tr:hover td{background:#FAFCFA}
       <div class="kpi-card" style="--kpi-color:var(--green);--kpi-bg:var(--green-l)"><div class="kpi-icon">📥</div><div><div class="kpi-label">Ingresos mes</div><div class="kpi-value" id="r-imes">—</div></div></div>
       <div class="kpi-card" style="--kpi-color:var(--blue);--kpi-bg:var(--blue-l)"><div class="kpi-icon">💰</div><div><div class="kpi-label">Balance mes</div><div class="kpi-value" id="r-bmes">—</div></div></div>
     </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><div class="card-title">📈 Ventas de los últimos 12 meses</div></div>
+      <div class="card-body"><canvas id="ch-reportes-ventas" height="180"></canvas></div>
+    </div>
     <div class="card" style="margin-bottom:20px;padding:20px">
       <h3 style="margin-top:0">📗 Excel mensual completo</h3>
       <p style="color:var(--text-s);font-size:13px;margin-bottom:14px">Incluye: listado de facturas del mes, listado diario de ticket/datáfono, y estadísticas de ventas por día.</p>
@@ -853,6 +881,26 @@ tr:hover td{background:#FAFCFA}
         <select class="select" id="iva-anio" style="width:100%;margin-bottom:8px"></select>
         <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="exportLibroIVA()">🧾 Descargar (modelo 303 / gestoría)</button>
       </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:36px;margin-bottom:10px">🧺</div><h3>Productos por Cliente (Facturas + Tienda)</h3>
+        <p style="color:var(--text-s);font-size:12px;margin:4px 0 10px">Con fecha de cada compra. Deja el periodo en blanco para todo el histórico.</p>
+        <input class="input" type="month" id="ppc-mes-rapido" style="width:100%;margin-bottom:6px" onchange="aplicarMesRapidoProductosPorCliente()">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <input class="input" type="date" id="ppc-desde" placeholder="Desde">
+          <input class="input" type="date" id="ppc-hasta" placeholder="Hasta">
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="exportProductosPorCliente()">🧺 Descargar</button>
+      </div>
+      <div class="card" style="padding:20px;text-align:center">
+        <div style="font-size:36px;margin-bottom:10px">🔬</div><h3>Excel Superdetallado</h3>
+        <p style="color:var(--text-s);font-size:12px;margin:4px 0 10px">Día a día, cada producto vendido con su importe — una pestaña de Facturas y otra de Tienda.</p>
+        <input class="input" type="month" id="superdet-mes-rapido" style="width:100%;margin-bottom:6px" onchange="aplicarMesRapidoSuperdetallado()">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <input class="input" type="date" id="superdet-desde" placeholder="Desde">
+          <input class="input" type="date" id="superdet-hasta" placeholder="Hasta">
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="exportExcelSuperdetallado()">🔬 Descargar</button>
+      </div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">📋</div><h3>Exportar CSV</h3><button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px" onclick="exportCSV('all')">📊 Exportar</button></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">💾</div><h3>Backup JSON</h3><button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px" onclick="exportBackup()">💾 Backup</button></div>
       <div class="card" style="padding:20px;text-align:center"><div style="font-size:36px;margin-bottom:10px">📤</div><h3>Importar Backup</h3><label class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px;cursor:pointer">📂 Seleccionar<input type="file" accept=".json" style="display:none" onchange="importBackup(this)"></label></div>
@@ -865,15 +913,24 @@ tr:hover td{background:#FAFCFA}
     <div class="card" style="margin-bottom:20px">
       <p style="color:var(--text-s);font-size:13px;margin-top:0">Combina los filtros que quieras — puedes dejar cualquiera en blanco. Ej: producto "tomate" + canal "Alimerka" + mes "agosto".</p>
       <div class="form-grid">
-        <div class="form-group"><label>Tipo</label><select class="select" id="im-tipo">
+        <div class="form-group"><label>Tipo</label><select class="select" id="im-tipo" onchange="toggleFiltrosInformeMedida()">
           <option value="C">Ventas a clientes</option>
           <option value="P">Compras a proveedores</option>
           <option value="all">Ambos</option>
         </select></div>
         <div class="form-group"><label>Producto (nombre o parte del nombre)</label><input class="input" id="im-producto" placeholder="Ej: tomate"></div>
-        <div class="form-group"><label>Cliente</label><select class="select" id="im-cliente"><option value="">— Todos —</option></select></div>
-        <div class="form-group"><label>Canal</label><select class="select" id="im-canal">
+        <div class="form-group" id="im-cliente-row"><label>Cliente</label><select class="select" id="im-cliente"><option value="">— Todos —</option></select></div>
+        <div class="form-group" id="im-proveedor-row" style="display:none"><label>Proveedor</label><select class="select" id="im-proveedor"><option value="">— Todos —</option></select></div>
+        <div class="form-group full"><label>Canal (puedes marcar varios)</label>
+          <div id="im-canal-checks" style="display:flex;flex-wrap:wrap;gap:10px;padding:8px 0"></div>
+        </div>
+        <div class="form-group"><label>Cultivo</label><select class="select" id="im-cultivo"><option value="">— Todos —</option></select></div>
+        <div class="form-group"><label>Lote</label><select class="select" id="im-lote"><option value="">— Todos —</option></select></div>
+        <div class="form-group"><label>Estado</label><select class="select" id="im-estado">
           <option value="">— Todos —</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="pagado">Pagado</option>
+          <option value="cobrado">Cobrado</option>
         </select></div>
         <div class="form-group"><label>Mes rápido (opcional)</label><input class="input" type="month" id="im-mes-rapido" onchange="aplicarMesRapidoInforme()"></div>
         <div class="form-group"><label>Desde</label><input class="input" type="date" id="im-desde"></div>
@@ -2945,7 +3002,8 @@ async function delMaterial(id){ if(confirm('¿Eliminar?')){ try{ await sbDelete(
 // ════════════════════════════════════════════════════
 //  RENTABILIDAD
 // ════════════════════════════════════════════════════
-let chMargen,chIngGas;
+let chMargen,chIngGas,chRentCliente,chRentProducto,chReportesVentas;
+let ultimaRentabilidadCliente=[], ultimaRentabilidadProducto=[];
 function renderRentabilidad(){
   const anioEl=document.getElementById('rent-anio');
   const facts=dbGet('facturas');
@@ -3012,6 +3070,89 @@ function renderRentabilidad(){
     <tr><td><strong>${f.nombre}</strong></td><td><span class="badge badge-blue">${f.canal}</span></td>
     <td>${f.nFacturas}</td><td><strong>${eur(f.total)}</strong></td><td>${eur(f.ticketMedio)}</td><td>${f.topProducto}</td></tr>
   `).join('') : '<tr><td colspan="6" style="color:var(--text-s)">Sin facturas de cliente este año.</td></tr>';
+  ultimaRentabilidadCliente = filasCliente;
+  if(chRentCliente) chRentCliente.destroy();
+  const top10Cli = filasCliente.slice(0,10);
+  if(top10Cli.length){
+    chRentCliente = new Chart(document.getElementById('ch-rent-cliente'), {type:'bar', data:{labels:top10Cli.map(f=>f.nombre), datasets:[{label:'Total facturado', data:top10Cli.map(f=>f.total), backgroundColor:'rgba(46,125,50,.7)'}]}, options:{responsive:true, indexAxis:'y', plugins:{legend:{display:false}}}});
+  }
+
+  // ── Rentabilidad por producto (coste estimado repartido desde el cultivo) ──
+  const gastoPorCultivo = {};
+  cultivos.forEach((c,i)=>{ gastoPorCultivo[c] = cGas[i]; });
+  const catalogoProductos = dbGet('productos');
+  const cultivoDeProducto = (desc)=>{
+    const d = (desc||'').toLowerCase();
+    const match = catalogoProductos.find(p=>p.nombre && (d.includes(p.nombre.toLowerCase())||p.nombre.toLowerCase().includes(d)));
+    return match?.cultivo || null;
+  };
+  const ventasTiendaAnio = dbGet('ventas_tienda').filter(v=>v.fecha?.startsWith(anio));
+  const ingresoPorProducto = {};
+  factsCliAnio.forEach(f=>(f.lineas||[]).forEach(l=>{
+    const desc = l.desc||'Sin descripción';
+    if(!ingresoPorProducto[desc]) ingresoPorProducto[desc] = 0;
+    ingresoPorProducto[desc] += parseFloat(l.imp)||0;
+  }));
+  ventasTiendaAnio.forEach(v=>(v.lineas||[]).forEach(l=>{
+    const desc = l.nombre||l.desc||'Sin descripción';
+    const importe = (parseFloat(l.cantidad ?? l.uds)||0)*(parseFloat(l.precio)||0);
+    if(!ingresoPorProducto[desc]) ingresoPorProducto[desc] = 0;
+    ingresoPorProducto[desc] += importe;
+  }));
+  // Agrupar ingresos por cultivo para poder repartir el gasto proporcionalmente
+  const ingresoPorCultivoDeProductos = {};
+  Object.entries(ingresoPorProducto).forEach(([desc,ing])=>{
+    const cult = cultivoDeProducto(desc) || 'Sin asignar';
+    ingresoPorCultivoDeProductos[cult] = (ingresoPorCultivoDeProductos[cult]||0) + ing;
+  });
+  const filasProducto = Object.entries(ingresoPorProducto).map(([desc,ing])=>{
+    const cult = cultivoDeProducto(desc) || 'Sin asignar';
+    const gastoCult = gastoPorCultivo[cult] || 0;
+    const ingresoTotalCult = ingresoPorCultivoDeProductos[cult] || 0;
+    const costeEstimado = (cult!=='Sin asignar' && ingresoTotalCult>0) ? gastoCult*(ing/ingresoTotalCult) : 0;
+    const margen = ing - costeEstimado;
+    const margenPct = ing>0 ? (margen/ing*100) : 0;
+    return { producto:desc, cultivo:cult, ingresos:ing, coste:costeEstimado, margen, margenPct };
+  }).sort((a,b)=>b.margen-a.margen);
+  document.getElementById('rent-producto-tbody').innerHTML = filasProducto.length ? filasProducto.map(f=>`
+    <tr><td><strong>${f.producto}</strong></td><td>${f.cultivo==='Sin asignar'?'<span style="color:var(--text-s)">Sin asignar</span>':iconoCultivo(f.cultivo)+' '+f.cultivo}</td>
+    <td>${eur(f.ingresos)}</td><td>${eur(f.coste)}</td>
+    <td style="color:${f.margen>=0?'var(--green)':'var(--red)'}">${eur(f.margen)}</td>
+    <td style="color:${f.margen>=0?'var(--green)':'var(--red)'}">${f.margenPct.toFixed(1)}%</td></tr>
+  `).join('') : '<tr><td colspan="6" style="color:var(--text-s)">Sin ventas este año.</td></tr>';
+  ultimaRentabilidadProducto = filasProducto;
+  if(chRentProducto) chRentProducto.destroy();
+  const top10Prod = filasProducto.slice(0,10);
+  if(top10Prod.length){
+    chRentProducto = new Chart(document.getElementById('ch-rent-producto'), {type:'bar', data:{labels:top10Prod.map(f=>f.producto), datasets:[{label:'Margen (€)', data:top10Prod.map(f=>+f.margen.toFixed(2)), backgroundColor:top10Prod.map(f=>f.margen>=0?'rgba(46,125,50,.7)':'rgba(229,57,53,.7)')}]}, options:{responsive:true, indexAxis:'y', plugins:{legend:{display:false}}}});
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  EXPORTAR RENTABILIDAD POR CLIENTE Y POR PRODUCTO
+// ════════════════════════════════════════════════════
+async function exportRentabilidadClienteExcel(){
+  if(!ultimaRentabilidadCliente.length){ toast('No hay datos para exportar','err'); return; }
+  try{
+    const headers = ['Cliente','Canal','Nº Facturas','Total facturado','Ticket medio','Producto más comprado'];
+    const filas = ultimaRentabilidadCliente.map(f=>[f.nombre, f.canal, f.nFacturas, f.total, f.ticketMedio, f.topProducto]);
+    const wb = new ExcelJS.Workbook();
+    hojaEstilizada(wb, 'Rentabilidad por cliente', headers, filas, {colsMoneda:[4,5], colsCentrado:[2,3]});
+    await descargarWorkbook(wb, 'rentabilidad_por_cliente_'+today()+'.xlsx');
+    toast('✅ Excel descargado');
+  }catch(e){ console.error(e); toast('Error: '+e.message,'err'); }
+}
+
+async function exportRentabilidadProductoExcel(){
+  if(!ultimaRentabilidadProducto.length){ toast('No hay datos para exportar','err'); return; }
+  try{
+    const headers = ['Producto','Cultivo','Ingresos','Coste estimado','Margen €','Margen %'];
+    const filas = ultimaRentabilidadProducto.map(f=>[f.producto, f.cultivo, f.ingresos, f.coste, f.margen, +f.margenPct.toFixed(1)]);
+    const wb = new ExcelJS.Workbook();
+    hojaEstilizada(wb, 'Rentabilidad por producto', headers, filas, {colsMoneda:[3,4,5], colsCentrado:[2,6]});
+    await descargarWorkbook(wb, 'rentabilidad_por_producto_'+today()+'.xlsx');
+    toast('✅ Excel descargado');
+  }catch(e){ console.error(e); toast('Error: '+e.message,'err'); }
 }
 
 // ════════════════════════════════════════════════════
@@ -3205,6 +3346,20 @@ function renderTienda(){
       }).join('')
     : '<span style="color:var(--text-s)">No hay productos en el catálogo. Añádelos primero en la pestaña "Productos".</span>';
   renderCarritoTienda();
+  renderTicketsRecientesTienda();
+}
+
+function renderTicketsRecientesTienda(){
+  const tbody = document.getElementById('tienda-tickets-recientes-tbody');
+  const vacio = document.getElementById('tienda-tickets-vacio');
+  if(!tbody) return;
+  const ventas = dbGet('ventas_tienda').slice().sort((a,b)=>(b.fecha+((b.hora)||'')).localeCompare(a.fecha+((a.hora)||''))).slice(0,25);
+  vacio.style.display = ventas.length ? 'none' : 'block';
+  tbody.innerHTML = ventas.map(v=>`
+    <tr><td>${v.num||'—'}</td><td>${fmtDate(v.fecha)}</td><td>${v.hora||'—'}</td>
+    <td>${v.metodoPago==='datafono'?'💳 Datáfono':'🎫 Ticket'}</td><td><strong>${eur(v.total)}</strong></td>
+    <td><button class="btn btn-sm btn-icon" title="Descargar PDF" onclick='generarTicketPDF(${JSON.stringify(v).replace(/'/g,"&apos;")})'>📄</button></td></tr>
+  `).join('');
 }
 
 function anadirProductoCarrito(prodId){
@@ -3304,6 +3459,7 @@ async function cobrarVentaTienda(){
     generarTicketPDF(venta);
     carritoTienda = [];
     renderCarritoTienda();
+    renderTicketsRecientesTienda();
     toast(`✅ Ticket ${venta.num} generado — ${eur(total)}`);
   }catch(e){ toast('Error al guardar la venta: '+e.message,'err'); }
 }
@@ -3707,6 +3863,53 @@ async function delTicket(id){
   if(!confirm('¿Eliminar este día?')) return;
   try{ await sbDelete('tickets', id); CACHE.tickets = dbGet('tickets').filter(t=>t.id!==id); renderTickets(); toast('Eliminado','info'); }
   catch(e){ toast('Error: '+e.message,'err'); }
+}
+
+// ════════════════════════════════════════════════════
+//  TIENDA — Excel agrupado por día y por mes
+// ════════════════════════════════════════════════════
+async function exportTiendaExcelDiasMeses(){
+  const ventas = dbGet('ventas_tienda');
+  if(!ventas.length){ toast('No hay ventas de Tienda todavía','err'); return; }
+  try{
+    const porDia = {};
+    ventas.forEach(v=>{
+      const d = v.fecha;
+      if(!porDia[d]) porDia[d] = { nTickets:0, ticket:0, datafono:0, total:0 };
+      porDia[d].nTickets++;
+      if(v.metodoPago==='datafono') porDia[d].datafono += parseFloat(v.total)||0;
+      else porDia[d].ticket += parseFloat(v.total)||0;
+      porDia[d].total += parseFloat(v.total)||0;
+    });
+    const diasOrdenados = Object.keys(porDia).sort();
+    const headersDia = ['Fecha','Nº Tickets','Venta Ticket/Efectivo','Venta Datáfono','Total día'];
+    const filasDia = diasOrdenados.map(d=>[fmtDate(d), porDia[d].nTickets, porDia[d].ticket, porDia[d].datafono, porDia[d].total]);
+    const totalGeneral = diasOrdenados.reduce((s,d)=>s+porDia[d].total,0);
+    filasDia.push([]);
+    filasDia.push(['TOTAL', ventas.length, diasOrdenados.reduce((s,d)=>s+porDia[d].ticket,0), diasOrdenados.reduce((s,d)=>s+porDia[d].datafono,0), totalGeneral]);
+
+    const porMes = {};
+    ventas.forEach(v=>{
+      const m = (v.fecha||'').slice(0,7);
+      if(!porMes[m]) porMes[m] = { nTickets:0, ticket:0, datafono:0, total:0 };
+      porMes[m].nTickets++;
+      if(v.metodoPago==='datafono') porMes[m].datafono += parseFloat(v.total)||0;
+      else porMes[m].ticket += parseFloat(v.total)||0;
+      porMes[m].total += parseFloat(v.total)||0;
+    });
+    const mesesOrdenados = Object.keys(porMes).sort();
+    const headersMes = ['Mes','Nº Tickets','Venta Ticket/Efectivo','Venta Datáfono','Total mes'];
+    const filasMes = mesesOrdenados.map(m=>[m, porMes[m].nTickets, porMes[m].ticket, porMes[m].datafono, porMes[m].total]);
+    filasMes.push([]);
+    filasMes.push(['TOTAL', ventas.length, mesesOrdenados.reduce((s,m)=>s+porMes[m].ticket,0), mesesOrdenados.reduce((s,m)=>s+porMes[m].datafono,0), totalGeneral]);
+
+    const wb = new ExcelJS.Workbook();
+    hojaEstilizada(wb, 'Por día', headersDia, filasDia, {colsMoneda:[3,4,5], colsCentrado:[1,2], filasDestacadas:[filasDia.length-1]});
+    hojaEstilizada(wb, 'Por mes', headersMes, filasMes, {colsMoneda:[3,4,5], colsCentrado:[1,2], filasDestacadas:[filasMes.length-1]});
+
+    await descargarWorkbook(wb, 'tienda_por_dias_meses_'+today()+'.xlsx');
+    toast('✅ Excel de Tienda generado');
+  }catch(e){ console.error(e); toast('Error al generar el Excel: '+e.message,'err'); }
 }
 
 async function exportTicketsExcel(){
@@ -4277,8 +4480,24 @@ let resultadoInformeMedida = [];
 function renderInformeMedida(){
   const selCli = document.getElementById('im-cliente');
   selCli.innerHTML = '<option value="">— Todos —</option>' + dbGet('clientes').map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
-  const selCanal = document.getElementById('im-canal');
-  selCanal.innerHTML = '<option value="">— Todos —</option>' + Object.entries(CANALES).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  const selProv = document.getElementById('im-proveedor');
+  selProv.innerHTML = '<option value="">— Todos —</option>' + dbGet('proveedores').map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+  const contCanal = document.getElementById('im-canal-checks');
+  contCanal.innerHTML = Object.entries(CANALES).map(([v,l])=>`
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:normal;text-transform:none">
+      <input type="checkbox" class="im-canal-check" value="${v}" style="width:auto"> ${l}
+    </label>`).join('');
+  const selCultivo = document.getElementById('im-cultivo');
+  selCultivo.innerHTML = '<option value="">— Todos —</option>' + CULTIVOS.map(c=>`<option value="${c.nombre}">${c.icono||''} ${c.nombre}</option>`).join('');
+  const selLote = document.getElementById('im-lote');
+  selLote.innerHTML = '<option value="">— Todos —</option>' + dbGet('lotes').map(l=>`<option value="${l.codigo}">${l.codigo} (${l.cultivo})</option>`).join('');
+  toggleFiltrosInformeMedida();
+}
+
+function toggleFiltrosInformeMedida(){
+  const tipo = document.getElementById('im-tipo').value;
+  document.getElementById('im-cliente-row').style.display = tipo==='P' ? 'none' : 'block';
+  document.getElementById('im-proveedor-row').style.display = tipo==='C' ? 'none' : 'block';
 }
 
 function aplicarMesRapidoInforme(){
@@ -4292,8 +4511,13 @@ function aplicarMesRapidoInforme(){
 function limpiarInformeMedida(){
   ['im-producto','im-mes-rapido','im-desde','im-hasta'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('im-cliente').value='';
-  document.getElementById('im-canal').value='';
+  document.getElementById('im-proveedor').value='';
+  document.querySelectorAll('.im-canal-check').forEach(el=>el.checked=false);
+  document.getElementById('im-cultivo').value='';
+  document.getElementById('im-lote').value='';
+  document.getElementById('im-estado').value='';
   document.getElementById('im-tipo').value='C';
+  toggleFiltrosInformeMedida();
   resultadoInformeMedida=[];
   document.getElementById('im-tbody').innerHTML = '<tr><td colspan="8" style="color:var(--text-s)">Ajusta los filtros y pulsa "Buscar".</td></tr>';
   document.getElementById('im-resumen').style.display='none';
@@ -4304,14 +4528,21 @@ function buscarInformeMedida(){
   const tipo = document.getElementById('im-tipo').value;
   const producto = document.getElementById('im-producto').value.trim().toLowerCase();
   const cliId = document.getElementById('im-cliente').value;
-  const canal = document.getElementById('im-canal').value;
+  const provId = document.getElementById('im-proveedor').value;
+  const canales = Array.from(document.querySelectorAll('.im-canal-check:checked')).map(el=>el.value);
+  const cultivo = document.getElementById('im-cultivo').value;
+  const lote = document.getElementById('im-lote').value;
+  const estado = document.getElementById('im-estado').value;
   const desde = document.getElementById('im-desde').value;
   const hasta = document.getElementById('im-hasta').value;
 
   let facts = dbGet('facturas');
   if(tipo!=='all') facts = facts.filter(f=>f.tipo===tipo);
   if(cliId) facts = facts.filter(f=>String(f.cliId)===String(cliId));
-  if(canal) facts = facts.filter(f=>f.tipo==='C' && canalDeCliente(f.cliId)===canal);
+  if(provId) facts = facts.filter(f=>String(f.provId)===String(provId));
+  if(canales.length) facts = facts.filter(f=>f.tipo==='C' && canales.includes(canalDeCliente(f.cliId)));
+  if(cultivo) facts = facts.filter(f=>f.cultivo===cultivo);
+  if(estado) facts = facts.filter(f=>f.estado===estado);
   if(desde) facts = facts.filter(f=>(f.fecha||'')>=desde);
   if(hasta) facts = facts.filter(f=>(f.fecha||'')<=hasta);
 
@@ -4321,6 +4552,7 @@ function buscarInformeMedida(){
     const entidad = esProv ? getProv(f.provId) : getCli(f.cliId);
     (f.lineas||[]).forEach(l=>{
       if(producto && !(l.desc||'').toLowerCase().includes(producto)) return;
+      if(lote && l.lote!==lote) return;
       filas.push({
         fecha: f.fecha, num: f.num||'(sin numerar)', entidad: entidad.nombre||'—',
         canal: esProv ? '—' : labelCanal(canalDeCliente(f.cliId)),
@@ -4330,9 +4562,9 @@ function buscarInformeMedida(){
   });
 
   // Ventas de Tienda: se incluyen como si fueran de la entidad "Tienda (venta directa)",
-  // solo cuando el filtro lo permite (tipo Cliente/Ambos, sin cliente concreto elegido,
-  // y canal vacío o "Tienda propia")
-  const incluirTienda = (tipo==='C' || tipo==='all') && !cliId && (!canal || canal==='tienda');
+  // solo cuando el filtro lo permite (tipo Cliente/Ambos, sin cliente/proveedor concreto,
+  // sin estado elegido —Tienda no tiene estado de pago—, y canal vacío o "Tienda propia")
+  const incluirTienda = (tipo==='C' || tipo==='all') && !cliId && !provId && !estado && (!canales.length || canales.includes('tienda'));
   if(incluirTienda){
     let ventas = dbGet('ventas_tienda');
     if(desde) ventas = ventas.filter(v=>(v.fecha||'')>=desde);
@@ -4341,6 +4573,8 @@ function buscarInformeMedida(){
       (v.lineas||[]).forEach(l=>{
         const desc = l.nombre || l.desc || '';
         if(producto && !desc.toLowerCase().includes(producto)) return;
+        if(cultivo && l.cultivo!==cultivo) return;
+        if(lote && l.loteCodigo!==lote) return;
         filas.push({
           fecha: v.fecha, num: v.num||'(ticket)', entidad: 'Tienda (venta directa)',
           canal: labelCanal('tienda'),
@@ -4373,48 +4607,190 @@ function buscarInformeMedida(){
 
 async function descargarInformeMedidaExcel(){
   if(!resultadoInformeMedida.length){ toast('Primero pulsa "Buscar"','err'); return; }
-  const producto = document.getElementById('im-producto').value.trim();
-  const desde = document.getElementById('im-desde').value;
-  const hasta = document.getElementById('im-hasta').value;
+  try{
+    const producto = document.getElementById('im-producto').value.trim();
+    const desde = document.getElementById('im-desde').value;
+    const hasta = document.getElementById('im-hasta').value;
 
-  const headers = ['Fecha','Nº Factura','Entidad','Canal','Producto','Cantidad','Precio','Importe'];
-  const filas = resultadoInformeMedida.map(l=>[fmtDate(l.fecha), l.num, l.entidad, l.canal, l.desc, l.uds, l.precio, l.imp]);
-  const totalImporte = resultadoInformeMedida.reduce((s,l)=>s+l.imp,0);
-  const totalUds = resultadoInformeMedida.reduce((s,l)=>s+l.uds,0);
-  filas.push([]);
-  filas.push(['TOTAL','','','','', totalUds, '', totalImporte]);
+    const headers = ['Fecha','Nº Factura','Entidad','Canal','Producto','Cantidad','Precio','Importe'];
+    const filas = resultadoInformeMedida.map(l=>[fmtDate(l.fecha), l.num, l.entidad, l.canal, l.desc, l.uds, l.precio, l.imp]);
+    const totalImporte = resultadoInformeMedida.reduce((s,l)=>s+l.imp,0);
+    const totalUds = resultadoInformeMedida.reduce((s,l)=>s+l.uds,0);
+    filas.push([]);
+    filas.push(['TOTAL','','','','', totalUds, '', totalImporte]);
 
-  const wb = new ExcelJS.Workbook();
-  hojaEstilizada(wb, 'Resultado filtrado', headers, filas, {colsMoneda:[7,8], colsCentrado:[1,6]});
+    const wb = new ExcelJS.Workbook();
+    hojaEstilizada(wb, 'Resultado filtrado', headers, filas, {colsMoneda:[7,8], colsCentrado:[1,6]});
 
-  // Agregado por producto (si hay varios productos distintos en el resultado)
-  const porProducto = {};
-  resultadoInformeMedida.forEach(l=>{
-    if(!porProducto[l.desc]) porProducto[l.desc] = {uds:0, importe:0};
-    porProducto[l.desc].uds += l.uds;
-    porProducto[l.desc].importe += l.imp;
-  });
-  const filasProd = Object.entries(porProducto).sort((a,b)=>b[1].importe-a[1].importe).map(([desc,v])=>[desc, v.uds, v.importe]);
-  hojaEstilizada(wb, 'Por producto', ['Producto','Cantidad','Importe'], filasProd, {colsMoneda:[3], colsCentrado:[2]});
+    // Agregado por producto (si hay varios productos distintos en el resultado)
+    const porProducto = {};
+    resultadoInformeMedida.forEach(l=>{
+      if(!porProducto[l.desc]) porProducto[l.desc] = {uds:0, importe:0};
+      porProducto[l.desc].uds += l.uds;
+      porProducto[l.desc].importe += l.imp;
+    });
+    const filasProd = Object.entries(porProducto).sort((a,b)=>b[1].importe-a[1].importe).map(([desc,v])=>[desc, v.uds, v.importe]);
+    hojaEstilizada(wb, 'Por producto', ['Producto','Cantidad','Importe'], filasProd, {colsMoneda:[3], colsCentrado:[2]});
 
-  // Gráfico si hay más de un producto o más de un mes distinto
-  if(filasProd.length>1){
-    const top = filasProd.slice(0,8);
-    const img = await generarGraficoImagen({ type:'bar', labels:top.map(f=>f[0].length>22?f[0].slice(0,21)+'…':f[0]), datasets:[{label:'Importe (€)', data:top.map(f=>+f[2].toFixed(2))}], titulo:'Importe por producto', subtitulo: producto?('Filtro: "'+producto+'"'):'' });
-    const wsGraf = wb.addWorksheet('Gráfico');
-    const idImg = wb.addImage({ base64:img, extension:'png' });
-    wsGraf.addImage(idImg, { tl:{col:0,row:1}, ext:{width:640,height:320} });
+    // Gráfico si hay más de un producto distinto — si esto falla, no impide descargar el resto
+    if(filasProd.length>1){
+      try{
+        const top = filasProd.slice(0,8);
+        const img = await generarGraficoImagen({ type:'bar', labels:top.map(f=>f[0].length>22?f[0].slice(0,21)+'…':f[0]), datasets:[{label:'Importe (€)', data:top.map(f=>+f[2].toFixed(2))}], titulo:'Importe por producto', subtitulo: producto?('Filtro: "'+producto+'"'):'' });
+        const wsGraf = wb.addWorksheet('Gráfico');
+        const idImg = wb.addImage({ base64:img, extension:'png' });
+        wsGraf.addImage(idImg, { tl:{col:0,row:1}, ext:{width:640,height:320} });
+      }catch(eGrafico){ console.warn('No se pudo generar el gráfico del informe:', eGrafico.message); }
+    }
+
+    const nombreArchivo = ['informe', producto||null, desde||null, hasta||null].filter(Boolean).join('_').replace(/\s+/g,'-') || 'informe_'+today();
+    await descargarWorkbook(wb, nombreArchivo+'.xlsx');
+    toast('✅ Informe descargado');
+  }catch(e){
+    console.error(e);
+    toast('Error al generar el Excel: '+e.message,'err');
   }
-
-  const nombreArchivo = ['informe', producto||null, desde||null, hasta||null].filter(Boolean).join('_').replace(/\s+/g,'-') || 'informe_'+today();
-  await descargarWorkbook(wb, nombreArchivo+'.xlsx');
-  toast('✅ Informe descargado');
 }
 
 // ════════════════════════════════════════════════════
 //  LIBRO DE IVA (trimestral) — repercutido y soportado,
 //  formato listo para el modelo 303 o para tu gestoría.
 // ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
+//  PRODUCTOS POR CLIENTE (Facturas + Tienda)
+// ════════════════════════════════════════════════════
+function aplicarMesRapidoProductosPorCliente(){
+  const mes = document.getElementById('ppc-mes-rapido').value;
+  if(!mes) return;
+  const dias = diasDelMes(mes);
+  document.getElementById('ppc-desde').value = dias[0];
+  document.getElementById('ppc-hasta').value = dias[dias.length-1];
+}
+
+async function exportProductosPorCliente(){
+  const desde = document.getElementById('ppc-desde').value;
+  const hasta = document.getElementById('ppc-hasta').value;
+  let facts = dbGet('facturas').filter(f=>f.tipo==='C');
+  let ventas = dbGet('ventas_tienda');
+  if(desde){ facts = facts.filter(f=>(f.fecha||'')>=desde); ventas = ventas.filter(v=>(v.fecha||'')>=desde); }
+  if(hasta){ facts = facts.filter(f=>(f.fecha||'')<=hasta); ventas = ventas.filter(v=>(v.fecha||'')<=hasta); }
+  if(!facts.length && !ventas.length){ toast('No hay datos en ese periodo','err'); return; }
+  try{
+    const combo = {};
+    facts.forEach(f=>{
+      const entidad = getCliName(f.cliId);
+      (f.lineas||[]).forEach(l=>{
+        const key = entidad+'|'+f.fecha+'|'+(l.desc||'');
+        if(!combo[key]) combo[key] = { entidad, fecha:f.fecha, producto:l.desc||'', uds:0, importe:0 };
+        combo[key].uds += parseFloat(l.uds)||0;
+        combo[key].importe += parseFloat(l.imp)||0;
+      });
+    });
+    ventas.forEach(v=>{
+      const entidad = 'Tienda (venta directa)';
+      (v.lineas||[]).forEach(l=>{
+        const desc = l.nombre||l.desc||'';
+        const key = entidad+'|'+v.fecha+'|'+desc;
+        if(!combo[key]) combo[key] = { entidad, fecha:v.fecha, producto:desc, uds:0, importe:0 };
+        const cant = parseFloat(l.cantidad ?? l.uds)||0;
+        combo[key].uds += cant;
+        combo[key].importe += cant*(parseFloat(l.precio)||0);
+      });
+    });
+    const filas = Object.values(combo).sort((a,b)=> a.entidad.localeCompare(b.entidad) || (a.fecha||'').localeCompare(b.fecha||''));
+    const datos = filas.map(f=>[f.entidad, fmtDate(f.fecha), f.producto, f.uds, f.importe]);
+
+    const porCliente = {};
+    filas.forEach(f=>{ porCliente[f.entidad] = (porCliente[f.entidad]||0)+f.importe; });
+    const resumen = Object.entries(porCliente).sort((a,b)=>b[1]-a[1]).map(([c,t])=>[c,t]);
+
+    const wb = new ExcelJS.Workbook();
+    hojaEstilizada(wb, 'Resumen por cliente', ['Cliente','Total'], resumen, {colsMoneda:[2]});
+    hojaEstilizada(wb, 'Detalle por producto', ['Cliente','Fecha','Producto','Cantidad','Importe'], datos, {colsMoneda:[5], colsCentrado:[2,4]});
+    const nombreArchivo = 'productos_por_cliente' + (desde?`_${desde}`:'') + (hasta?`_a_${hasta}`:'') + '.xlsx';
+    await descargarWorkbook(wb, nombreArchivo);
+    toast('✅ Excel generado');
+  }catch(e){ console.error(e); toast('Error al generar el Excel: '+e.message,'err'); }
+}
+
+// ════════════════════════════════════════════════════
+//  EXCEL SUPERDETALLADO — día a día, producto a producto,
+//  una pestaña de Facturas y otra de Tienda
+// ════════════════════════════════════════════════════
+function aplicarMesRapidoSuperdetallado(){
+  const mes = document.getElementById('superdet-mes-rapido').value;
+  if(!mes) return;
+  const dias = diasDelMes(mes);
+  document.getElementById('superdet-desde').value = dias[0];
+  document.getElementById('superdet-hasta').value = dias[dias.length-1];
+}
+
+function agregarPorDiaYProducto(items, getFecha, getEntidad, getLineas, getDesc, getCantidad, getImporte){
+  const porDia = {}; // fecha -> entidad -> producto -> {uds, importe}
+  items.forEach(item=>{
+    const fecha = getFecha(item);
+    const entidad = getEntidad ? getEntidad(item) : '';
+    (getLineas(item)||[]).forEach(l=>{
+      const desc = getDesc(l) || 'Sin descripción';
+      if(!porDia[fecha]) porDia[fecha] = {};
+      if(!porDia[fecha][entidad]) porDia[fecha][entidad] = {};
+      if(!porDia[fecha][entidad][desc]) porDia[fecha][entidad][desc] = {uds:0, importe:0};
+      porDia[fecha][entidad][desc].uds += getCantidad(l);
+      porDia[fecha][entidad][desc].importe += getImporte(l);
+    });
+  });
+  return porDia;
+}
+
+function filasSuperdetalladas(porDia, conEntidad){
+  const filas = [];
+  let totalGeneral = 0, udsGeneral = 0;
+  Object.keys(porDia).sort().forEach(fecha=>{
+    const porEntidad = porDia[fecha];
+    let totalDia = 0, udsDia = 0;
+    Object.keys(porEntidad).sort().forEach(entidad=>{
+      const productos = porEntidad[entidad];
+      Object.entries(productos).sort((a,b)=>b[1].importe-a[1].importe).forEach(([desc,v])=>{
+        filas.push(conEntidad ? [fmtDate(fecha), entidad, desc, v.uds, v.importe] : [fmtDate(fecha), desc, v.uds, v.importe]);
+        totalDia += v.importe; udsDia += v.uds;
+      });
+    });
+    filas.push(conEntidad ? [`TOTAL ${fmtDate(fecha)}`, '', '', udsDia, totalDia] : [`TOTAL ${fmtDate(fecha)}`, '', udsDia, totalDia]);
+    totalGeneral += totalDia; udsGeneral += udsDia;
+  });
+  filas.push([]);
+  filas.push(conEntidad ? ['TOTAL GENERAL', '', '', udsGeneral, totalGeneral] : ['TOTAL GENERAL', '', udsGeneral, totalGeneral]);
+  return filas;
+}
+
+async function exportExcelSuperdetallado(){
+  const desde = document.getElementById('superdet-desde').value;
+  const hasta = document.getElementById('superdet-hasta').value;
+  try{
+    let facts = dbGet('facturas').filter(f=>f.tipo==='C');
+    let ventas = dbGet('ventas_tienda');
+    if(desde){ facts = facts.filter(f=>(f.fecha||'')>=desde); ventas = ventas.filter(v=>(v.fecha||'')>=desde); }
+    if(hasta){ facts = facts.filter(f=>(f.fecha||'')<=hasta); ventas = ventas.filter(v=>(v.fecha||'')<=hasta); }
+    if(!facts.length && !ventas.length){ toast('No hay datos en ese rango de fechas','err'); return; }
+
+    const porDiaFacturas = agregarPorDiaYProducto(facts,
+      f=>f.fecha, f=>getCliName(f.cliId), f=>f.lineas, l=>l.desc, l=>parseFloat(l.uds)||0, l=>parseFloat(l.imp)||0);
+    const porDiaTienda = agregarPorDiaYProducto(ventas,
+      v=>v.fecha, null, v=>v.lineas, l=>l.nombre||l.desc, l=>parseFloat(l.cantidad ?? l.uds)||0, l=>(parseFloat(l.cantidad ?? l.uds)||0)*(parseFloat(l.precio)||0));
+
+    const filasFacturas = filasSuperdetalladas(porDiaFacturas, true);
+    const filasTienda = filasSuperdetalladas(porDiaTienda, false);
+
+    const wb = new ExcelJS.Workbook();
+    hojaEstilizada(wb, 'Facturas (día a día)', ['Fecha','Cliente','Producto','Cantidad','Importe'], filasFacturas, {colsMoneda:[5], colsCentrado:[4]});
+    hojaEstilizada(wb, 'Tienda (día a día)', ['Fecha','Producto','Cantidad','Importe'], filasTienda, {colsMoneda:[4], colsCentrado:[3]});
+
+    const nombreArchivo = 'excel_superdetallado' + (desde?`_${desde}`:'') + (hasta?`_a_${hasta}`:'') + '.xlsx';
+    await descargarWorkbook(wb, nombreArchivo);
+    toast('✅ Excel superdetallado generado');
+  }catch(e){ console.error(e); toast('Error al generar el Excel: '+e.message,'err'); }
+}
+
 async function exportLibroIVA(){
   const trimestre = parseInt(document.getElementById('iva-trimestre').value);
   const anio = document.getElementById('iva-anio').value;
@@ -4473,7 +4849,9 @@ function renderReportes(){
   const anio=new Date().getFullYear();
   const mesF=facts.filter(f=>{ const p=f.fecha?.split('-'); return p&&parseInt(p[1])-1===m&&parseInt(p[0])===anio; });
   const gmes=mesF.filter(f=>f.tipo==='P').reduce((s,f)=>s+f.total,0);
-  const imes=mesF.filter(f=>f.tipo==='C').reduce((s,f)=>s+f.total,0);
+  const desdeMes = `${anio}-${String(m+1).padStart(2,'0')}-01`;
+  const hastaMes = `${anio}-${String(m+1).padStart(2,'0')}-31`;
+  const imes=mesF.filter(f=>f.tipo==='C').reduce((s,f)=>s+f.total,0) + ingresosTiendaEnRango(desdeMes,hastaMes);
   document.getElementById('r-gmes').textContent=eur(gmes);
   document.getElementById('r-imes').textContent=eur(imes);
   document.getElementById('r-bmes').textContent=eur(imes-gmes);
@@ -4487,6 +4865,32 @@ function renderReportes(){
     ivaAnioSel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
     document.getElementById('iva-trimestre').value = String(Math.floor(m/3)+1);
   }
+
+  // ── Gráfico: ventas (facturas + tienda) vs gastos, últimos 12 meses ──
+  const hoy = new Date();
+  const meses12 = [0,1,2,3,4,5,6,7,8,9,10,11].reverse().map(i=>{
+    const d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  });
+  const labelsMeses = meses12.map(m=>{ const [y,mm]=m.split('-'); return `${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(mm)-1]} ${y.slice(2)}`; });
+  const ventasPorMes = meses12.map(m=>{
+    const desde=`${m}-01`, hasta=`${m}-31`;
+    const facFact = facts.filter(f=>f.tipo==='C'&&(f.fecha||'')>=desde&&(f.fecha||'')<=hasta).reduce((s,f)=>s+(parseFloat(f.total)||0),0);
+    return facFact + ingresosTiendaEnRango(desde,hasta);
+  });
+  const gastosPorMes = meses12.map(m=>{
+    const desde=`${m}-01`, hasta=`${m}-31`;
+    return facts.filter(f=>f.tipo==='P'&&(f.fecha||'')>=desde&&(f.fecha||'')<=hasta).reduce((s,f)=>s+(parseFloat(f.total)||0),0);
+  });
+  if(chReportesVentas) chReportesVentas.destroy();
+  chReportesVentas = new Chart(document.getElementById('ch-reportes-ventas'), {
+    type:'bar',
+    data:{ labels:labelsMeses, datasets:[
+      {label:'Ventas (facturas + tienda)', data:ventasPorMes, backgroundColor:'rgba(46,125,50,.7)'},
+      {label:'Gastos', data:gastosPorMes, backgroundColor:'rgba(229,57,53,.7)'}
+    ]},
+    options:{ responsive:true, plugins:{legend:{position:'top'}} }
+  });
 }
 
 // ════════════════════════════════════════════════════
