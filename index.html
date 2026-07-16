@@ -158,7 +158,7 @@ tr:hover td{background:#FAFCFA}
 .totales-final{display:flex;justify-content:space-between;padding:10px 0 4px;font-size:16px;font-weight:800;color:var(--green-d);border-top:2px solid var(--green);margin-top:8px}
 
 /* ─── LINEAS ─── */
-.linea-row{display:grid;grid-template-columns:80px 80px 1fr 60px 80px 80px 90px 32px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.linea-row{display:grid;grid-template-columns:80px 80px 1fr 60px 80px 80px 130px 90px 32px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
 .linea-row:last-child{border-bottom:none}
 .linea-add-btn{display:block;width:100%;padding:8px;text-align:center;background:var(--green-l);color:var(--green-d);border:2px dashed var(--green-m);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin-top:8px;transition:.2s}
 .linea-add-btn:hover{background:var(--green);color:#fff}
@@ -239,7 +239,7 @@ tr:hover td{background:#FAFCFA}
   .dash-charts,.form-grid{grid-template-columns:1fr}
   .kpi-grid{grid-template-columns:1fr 1fr}
   .linea-row{grid-template-columns:1fr 60px 70px 32px}
-  .linea-row .linea-alb,.linea-row .linea-ped,.linea-row .linea-lote{display:none}
+  .linea-row .linea-alb,.linea-row .linea-ped,.linea-row .linea-lote,.linea-row .linea-producto{display:none}
   .form-group.full{grid-column:1}
 }
 </style>
@@ -412,11 +412,16 @@ tr:hover td{background:#FAFCFA}
                 <label>Productos y precios habituales de este cliente</label>
                 <div id="nf-cli-productos-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
-                  <input class="input" id="ncp-nombre" placeholder="Producto nuevo" style="flex:2;min-width:120px">
-                  <input class="input" id="ncp-precio" type="number" step="0.01" placeholder="Precio" style="flex:1;min-width:80px">
+                  <select class="select" id="ncp-producto-select" style="flex:2;min-width:150px" onchange="cambioProductoCatalogoNCP()">
+                    <option value="">— Elegir del catálogo —</option>
+                    <option value="__otro__">✏️ Otro (nombre libre, sin vincular al catálogo)</option>
+                  </select>
+                  <input class="input" id="ncp-nombre" placeholder="Nombre del producto" style="flex:2;min-width:120px;display:none">
+                  <input class="input" id="ncp-precio" type="number" step="0.01" placeholder="Precio para este cliente" style="flex:1;min-width:80px">
                   <input class="input" id="ncp-unidad" placeholder="kg / ud / docena" style="flex:1;min-width:90px">
                   <button class="btn btn-secondary btn-sm" onclick="anadirProductoClienteNF()">+ Añadir al cliente</button>
                 </div>
+                <p style="font-size:11px;color:var(--text-s);margin:6px 0 0">Elígelo del catálogo siempre que puedas — así el cultivo, el coste y el margen real quedan bien enlazados en Rentabilidad. "Otro" es solo para casos sueltos.</p>
               </div>
               <div class="form-group full" id="nf-albaranes-multi-block" style="display:none">
                 <label>Subir varios albaranes de este cliente (la factura se fecha según el albarán más reciente)</label>
@@ -693,7 +698,7 @@ tr:hover td{background:#FAFCFA}
     </div>
     <p style="color:var(--text-s);font-size:13px;margin-bottom:16px">Cada lote genera un código QR que enlaza a una ficha pública (sin login) con el origen del producto — fecha de siembra, invernadero, recolección y certificación. Ideal para tickets, etiquetas o mostrárselo a clientes HORECA.</p>
     <div class="card">
-      <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cultivo</th><th>Invernadero</th><th>Siembra</th><th>Recolección</th><th>QR</th><th>Acciones</th></tr></thead><tbody id="lotes-tbody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cultivo</th><th>Invernadero</th><th>Siembra</th><th>Recolección</th><th>Kg</th><th>QR</th><th>Acciones</th></tr></thead><tbody id="lotes-tbody"></tbody></table></div>
     </div>
   </section>
 
@@ -770,7 +775,7 @@ tr:hover td{background:#FAFCFA}
         <div class="card-title">🥕 Rentabilidad por Producto</div>
         <button class="btn btn-secondary btn-sm" onclick="exportRentabilidadProductoExcel()">📗 Excel</button>
       </div>
-      <p style="color:var(--text-s);font-size:12px;margin:0 0 10px">El coste de cada producto es una <strong>estimación</strong>: se reparte el gasto de su cultivo entre los productos de ese cultivo, según la parte de ingresos que aporta cada uno — no es un coste de producción exacto por producto.</p>
+      <p style="color:var(--text-s);font-size:12px;margin:0 0 10px">El coste marcado como <strong>"real"</strong> sale del €/kg calculado en Costes por Cultivo (gastos ÷ kg cosechados en Lotes) multiplicado por los kg vendidos de ese producto. Si el cultivo todavía no tiene kg registrados en Lotes, se usa una <strong>estimación</strong> (reparto del gasto del cultivo según ingresos).</p>
       <div class="card-body"><canvas id="ch-rent-producto" height="180"></canvas></div>
       <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Cultivo</th><th>Ingresos</th><th>Coste estimado</th><th>Margen €</th><th>Margen %</th></tr></thead><tbody id="rent-producto-tbody"></tbody></table></div>
     </div>
@@ -2019,6 +2024,7 @@ function removeLinea(id){
 
 function renderLineas(){
   const lotes = dbGet('lotes');
+  const productos = dbGet('productos');
   const cultivoSel = document.getElementById('nf-cultivo')?.value || '';
   document.getElementById('lineas-wrap').innerHTML=nfLineas.map(l=>{
     const lotesFiltrados = lotes.filter(lo=>!cultivoSel || lo.cultivo===cultivoSel);
@@ -2030,6 +2036,10 @@ function renderLineas(){
       <input class="input" type="number" min="0" step="0.001" value="${l.uds||1}" oninput="updLinea('${l.id}','uds',this.value);calcLinea('${l.id}')">
       <input class="input" type="number" min="0" step="0.01" value="${l.precio||0}" oninput="updLinea('${l.id}','precio',this.value);calcLinea('${l.id}')">
       <input class="input" readonly value="${fmt(l.imp)}" style="background:#f8f8f8;font-weight:700">
+      <select class="select linea-producto" title="Enlazar con producto del catálogo (para que el margen se calcule bien)" onchange="vincularProductoLinea('${l.id}',this.value)">
+        <option value="">🔗 Sin enlazar</option>
+        ${productos.map(p=>`<option value="${p.id}" ${String(l.productoId)===String(p.id)?'selected':''}>${p.nombre}</option>`).join('')}
+      </select>
       <select class="select linea-lote" onchange="updLinea('${l.id}','lote',this.value)">
         <option value="">Sin lote</option>
         ${lotesFiltrados.map(lo=>`<option value="${lo.codigo}" ${l.lote===lo.codigo?'selected':''}>${lo.codigo}</option>`).join('')}
@@ -2038,6 +2048,21 @@ function renderLineas(){
     </div>
   `;
   }).join('');
+}
+
+function vincularProductoLinea(id, prodId){
+  const l = nfLineas.find(x=>x.id===id);
+  if(!l) return;
+  l.productoId = prodId ? parseInt(prodId) : null;
+  if(prodId){
+    const p = dbGet('productos').find(x=>x.id===parseInt(prodId));
+    if(p){
+      if(!l.desc || !l.desc.trim()) l.desc = p.nombre;
+      if(!l.precio) l.precio = p.pventa||0;
+      calcLinea(id);
+    }
+  }
+  renderLineas();
 }
 
 function updLinea(id,k,v){ const l=nfLineas.find(x=>x.id===id); if(l) l[k]=v; }
@@ -2359,12 +2384,13 @@ function renderLotes(){
   document.getElementById('lotes-tbody').innerHTML = lotes.length ? lotes.map(l=>`
     <tr><td><strong>${l.codigo}</strong></td><td>${iconoCultivo(l.cultivo)} ${l.cultivo}</td><td>${l.invernadero||'—'}</td>
     <td>${fmtDate(l.fecha_siembra)}</td><td>${l.fecha_recoleccion?fmtDate(l.fecha_recoleccion):'—'}</td>
+    <td>${l.kg_cosechados?l.kg_cosechados+' kg':'—'}</td>
     <td><img src="${urlQrLote(l.codigo)}" style="width:44px;height:44px;cursor:pointer" onclick="verQrLoteGrande('${l.codigo}')"></td>
     <td style="display:flex;gap:4px">
       <button class="btn btn-sm btn-icon" onclick="formLote(${l.id})">✏️</button>
       <button class="btn btn-sm btn-icon" onclick="delLote(${l.id})">🗑</button>
     </td></tr>
-  `).join('') : '<tr><td colspan="7" style="color:var(--text-s)">Todavía no hay lotes registrados.</td></tr>';
+  `).join('') : '<tr><td colspan="8" style="color:var(--text-s)">Todavía no hay lotes registrados.</td></tr>';
 }
 
 function urlQrLote(codigo){
@@ -2384,19 +2410,30 @@ function verQrLoteGrande(codigo){
 }
 
 function formLote(id){
-  const l = id ? dbGet('lotes').find(x=>x.id===id) : {codigo:'', cultivo:'', invernadero:'', fecha_siembra:today(), fecha_recoleccion:'', certificacion:'COPAE (Producción Ecológica)', notas:''};
+  const l = id ? dbGet('lotes').find(x=>x.id===id) : {codigo:'', cultivo:'', productoId:null, invernadero:'', fecha_siembra:today(), fecha_recoleccion:'', certificacion:'COPAE (Producción Ecológica)', notas:''};
   openModal(id?'Editar lote':'Nuevo lote', `
     <div class="form-grid">
       <div class="form-group"><label>Código de lote</label><input class="input" id="lt-codigo" value="${l.codigo}" placeholder="Ej: L2026-045"></div>
-      <div class="form-group"><label>Cultivo</label><select class="select" id="lt-cultivo">${opcionesCultivo(l.cultivo)}</select></div>
+      <div class="form-group"><label>Cultivo</label><select class="select" id="lt-cultivo" onchange="actualizarProductosLote()">${opcionesCultivo(l.cultivo)}</select></div>
+      <div class="form-group"><label>Producto concreto (opcional)</label><select class="select" id="lt-producto"><option value="">Todo el cultivo (sin especificar)</option></select></div>
       <div class="form-group"><label>Invernadero / Parcela</label><input class="input" id="lt-invernadero" value="${l.invernadero||''}" placeholder="Ej: Invernadero 3"></div>
       <div class="form-group"><label>Fecha de siembra</label><input class="input" type="date" id="lt-siembra" value="${l.fecha_siembra||''}"></div>
       <div class="form-group"><label>Fecha de recolección</label><input class="input" type="date" id="lt-recoleccion" value="${l.fecha_recoleccion||''}"></div>
+      <div class="form-group"><label>Kg cosechados</label><input class="input" type="number" step="0.01" id="lt-kg" value="${l.kg_cosechados||''}" placeholder="Ej: 850"></div>
       <div class="form-group"><label>Certificación</label><input class="input" id="lt-certificacion" value="${l.certificacion||'COPAE (Producción Ecológica)'}"></div>
       <div class="form-group full"><label>Notas (variedad, tratamiento, etc.)</label><textarea class="input" id="lt-notas" rows="2">${l.notas||''}</textarea></div>
     </div>
   `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveLote(${id||'null'})">💾 Guardar</button>`);
+  actualizarProductosLote(l.productoId);
+}
+
+function actualizarProductosLote(productoIdSeleccionado){
+  const cultivo = document.getElementById('lt-cultivo').value;
+  const sel = document.getElementById('lt-producto');
+  const productos = dbGet('productos').filter(p=>p.cultivo===cultivo);
+  sel.innerHTML = '<option value="">Todo el cultivo (sin especificar)</option>' +
+    productos.map(p=>`<option value="${p.id}" ${String(productoIdSeleccionado)===String(p.id)?'selected':''}>${p.nombre}</option>`).join('');
 }
 
 async function saveLote(id){
@@ -2404,12 +2441,15 @@ async function saveLote(id){
   if(!codigo){ toast('Indica un código de lote','err'); return; }
   const lotes = dbGet('lotes');
   if(lotes.some(l=>l.codigo===codigo && l.id!==id)){ toast('Ya existe un lote con ese código','err'); return; }
+  const productoIdVal = document.getElementById('lt-producto').value;
   const data = {
     id: id||nextId(lotes), codigo,
     cultivo: document.getElementById('lt-cultivo').value,
+    productoId: productoIdVal ? parseInt(productoIdVal) : null,
     invernadero: document.getElementById('lt-invernadero').value,
     fecha_siembra: document.getElementById('lt-siembra').value,
     fecha_recoleccion: document.getElementById('lt-recoleccion').value,
+    kg_cosechados: parseFloat(document.getElementById('lt-kg').value)||0,
     certificacion: document.getElementById('lt-certificacion').value,
     notas: document.getElementById('lt-notas').value
   };
@@ -2661,33 +2701,79 @@ function renderGastos(){
 //  COSTES CULTIVO
 // ════════════════════════════════════════════════════
 let chCultivoComp;
+function calcularRentabilidadCultivo(cultivo){
+  const facts = dbGet('facturas');
+  const costesDetalle = dbGet('costes_cultivo').filter(x=>x.cultivo===cultivo);
+  const gasFact = facts.filter(f=>f.tipo==='P'&&f.cultivo===cultivo).reduce((s,f)=>s+(parseFloat(f.total)||0),0);
+  const gasDetalle = costesDetalle.reduce((s,x)=>s+(parseFloat(x.importe)||0),0);
+  const gas = gasFact+gasDetalle;
+
+  const kgCosechados = dbGet('lotes').filter(l=>l.cultivo===cultivo).reduce((s,l)=>s+(parseFloat(l.kg_cosechados)||0),0);
+  const costePorKg = kgCosechados>0 ? gas/kgCosechados : null;
+
+  // Ingresos: se calculan por PRODUCTO vendido (enlace real al catálogo, o coincidencia
+  // de nombre como respaldo) — NO por el campo "Cultivo" de cabecera de la factura, que
+  // no tiene sentido si una factura mezcla productos de varios cultivos.
+  const productosDelCultivo = dbGet('productos').filter(p=>p.cultivo===cultivo);
+  const idsDelCultivo = new Set(productosDelCultivo.map(p=>p.id));
+  const nombresDelCultivo = productosDelCultivo.map(p=>p.nombre.toLowerCase());
+  const perteneceCultivo = (linea)=>{
+    const pid = linea.productoId ?? linea.prodId;
+    if(pid!=null && pid!==''){ return idsDelCultivo.has(parseInt(pid)); }
+    const d = (linea.desc||linea.nombre||'').toLowerCase();
+    return nombresDelCultivo.some(n=>d.includes(n)||n.includes(d));
+  };
+  let kgVendidos=0, ingresoVentas=0;
+  facts.filter(f=>f.tipo==='C').forEach(f=>(f.lineas||[]).forEach(l=>{
+    if(perteneceCultivo(l)){ kgVendidos += parseFloat(l.uds)||0; ingresoVentas += parseFloat(l.imp)||0; }
+  }));
+  dbGet('ventas_tienda').forEach(v=>(v.lineas||[]).forEach(l=>{
+    if(perteneceCultivo(l)){
+      const cant = parseFloat(l.cantidad ?? l.uds)||0;
+      kgVendidos += cant; ingresoVentas += cant*(parseFloat(l.precio)||0);
+    }
+  }));
+  const ing = ingresoVentas;
+  const margen = ing-gas;
+  const margenPct = ing>0 ? margen/ing*100 : null;
+  const precioVentaMedio = kgVendidos>0 ? ingresoVentas/kgVendidos : null;
+  const margenPorKg = (costePorKg!=null && precioVentaMedio!=null) ? precioVentaMedio-costePorKg : null;
+  const margenPorKgPct = (margenPorKg!=null && precioVentaMedio>0) ? margenPorKg/precioVentaMedio*100 : null;
+
+  return { gas, ing, margen, margenPct, kgCosechados, kgVendidos, costePorKg, precioVentaMedio, margenPorKg, margenPorKgPct, sinProductosVinculados: productosDelCultivo.length===0 };
+}
+
 function renderCultivosCostes(){
-  const facts=dbGet('facturas');
   const costesDetalle=dbGet('costes_cultivo');
   const mats=dbGet('materiales');
   const cultivos=CULTIVOS.map(c=>c.nombre);
   const grid=document.getElementById('cultivos-grid');
-  grid.innerHTML=cultivos.map(c=>{
-    const gasFact=facts.filter(f=>f.tipo==='P'&&f.cultivo===c).reduce((s,f)=>s+f.total,0);
-    const gasDetalle=costesDetalle.filter(x=>x.cultivo===c).reduce((s,x)=>s+(parseFloat(x.importe)||0),0);
-    const gas=gasFact+gasDetalle;
-    const ing=facts.filter(f=>f.tipo==='C'&&f.cultivo===c).reduce((s,f)=>s+f.total,0);
-    const margen=ing-gas;
+  const resultados = cultivos.map(c=>calcularRentabilidadCultivo(c));
+  grid.innerHTML=cultivos.map((c,i)=>{
+    const r = resultados[i];
     const matsCultivo=mats.filter(m=>m.cultivo===c).length;
     return `<div class="cultivo-card">
       <div class="cultivo-icon">${iconoCultivo(c)}</div>
       <div class="cultivo-name">${c}</div>
       <div class="cultivo-stats">
-        <div class="cultivo-stat"><div class="cv" style="color:var(--red)">${eur(gas)}</div><div class="ck">Gastos</div></div>
-        <div class="cultivo-stat"><div class="cv" style="color:var(--green)">${eur(ing)}</div><div class="ck">Ingresos</div></div>
-        <div class="cultivo-stat"><div class="cv" style="color:${margen>=0?'var(--green)':'var(--red)'}">${eur(margen)}</div><div class="ck">Margen</div></div>
+        <div class="cultivo-stat"><div class="cv" style="color:var(--red)">${eur(r.gas)}</div><div class="ck">Gastos</div></div>
+        <div class="cultivo-stat"><div class="cv" style="color:var(--green)">${eur(r.ing)}</div><div class="ck">Ingresos</div></div>
+        <div class="cultivo-stat"><div class="cv" style="color:${r.margen>=0?'var(--green)':'var(--red)'}">${eur(r.margen)}</div><div class="ck">Margen${r.margenPct!=null?' ('+r.margenPct.toFixed(1)+'%)':''}</div></div>
+      </div>
+      ${r.sinProductosVinculados ? `<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--orange,#c9781f);background:var(--orange-l,#fdf1e2);padding:6px;border-radius:6px">⚠ Ningún producto del catálogo tiene este cultivo asignado — ve a Productos y asígnaselo para que aquí salgan ventas.</div>` : ''}
+      <div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:12px">
+        ${r.margenPorKg!=null
+          ? `<strong style="color:${r.margenPorKg>=0?'var(--green)':'var(--red)'}">Margen real: ${eur(r.margenPorKg)}/kg (${r.margenPorKgPct.toFixed(1)}%)</strong>`
+          : (r.kgCosechados>0
+              ? `<span style="color:var(--text-s)">Sin ventas vinculadas todavía para calcular €/kg</span>`
+              : `<span style="color:var(--text-s)">Registra kg cosechados en Lotes para ver el margen por kilo</span>`)}
       </div>
       <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;justify-content:center" onclick="abrirCostesDetalladosCultivo('${c}')">🧾 Costes detallados (${costesDetalle.filter(x=>x.cultivo===c).length})</button>
       ${matsCultivo?`<div style="text-align:center;font-size:11px;color:var(--text-s);margin-top:6px">🧪 ${matsCultivo} material(es) asignado(s)</div>`:''}
     </div>`;
   }).join('');
-  const gas=cultivos.map(c=>facts.filter(f=>f.tipo==='P'&&f.cultivo===c).reduce((s,f)=>s+f.total,0)+costesDetalle.filter(x=>x.cultivo===c).reduce((s,x)=>s+(parseFloat(x.importe)||0),0));
-  const ing=cultivos.map(c=>facts.filter(f=>f.tipo==='C'&&f.cultivo===c).reduce((s,f)=>s+f.total,0));
+  const gas=resultados.map(r=>r.gas);
+  const ing=resultados.map(r=>r.ing);
   if(chCultivoComp) chCultivoComp.destroy();
   chCultivoComp=new Chart(document.getElementById('ch-cultivos'),{type:'bar',data:{labels:cultivos,datasets:[{label:'Gastos',data:gas,backgroundColor:'rgba(229,57,53,.7)'},{label:'Ingresos',data:ing,backgroundColor:'rgba(46,125,50,.7)'}]},options:{responsive:true,plugins:{legend:{position:'top'}}}});
 }
@@ -2719,7 +2805,30 @@ function renderModalCostesCultivo(cultivo){
     <td><button class="btn btn-sm btn-icon" onclick="delCosteCultivo(${c.id},'${cultivo}')">🗑</button></td></tr>
   `).join('') || '<tr><td colspan="5" style="color:var(--text-s)">Todavía no hay costes detallados para este cultivo.</td></tr>';
 
+  // ── Rentabilidad por kilo (misma función que usa la tarjeta principal) ──
+  const r = calcularRentabilidadCultivo(cultivo);
+  const productosDeEsteCultivo = dbGet('productos').filter(p=>p.cultivo===cultivo && p.pventa>0);
+  const precioCatalogoMedio = productosDeEsteCultivo.length ? productosDeEsteCultivo.reduce((s,p)=>s+p.pventa,0)/productosDeEsteCultivo.length : null;
+
   openModal(`Costes detallados · ${cultivo}`, `
+    <div class="card" style="background:var(--green-l,#e8efe6);padding:14px;border-radius:8px;margin-bottom:16px">
+      <h4 style="margin:0 0 8px">💹 Rentabilidad por kilo</h4>
+      <p style="font-size:12px;color:var(--text-s);margin:0 0 10px">Kg cosechados = suma de "Kg cosechados" de los lotes de este cultivo (pestaña Lotes). Precio de venta real = media de tus ventas; precio de catálogo = el que tienes puesto en Productos.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px">
+        <div><div style="font-size:11px;color:var(--text-s)">Kg cosechados</div><div style="font-weight:bold">${r.kgCosechados?r.kgCosechados.toFixed(1)+' kg':'Sin registrar'}</div></div>
+        <div><div style="font-size:11px;color:var(--text-s)">Gasto total cultivo</div><div style="font-weight:bold">${eur(r.gas)}</div></div>
+        <div><div style="font-size:11px;color:var(--text-s)">Coste por kg</div><div style="font-weight:bold">${r.costePorKg!=null?eur(r.costePorKg)+'/kg':'Registra kg en Lotes'}</div></div>
+        <div><div style="font-size:11px;color:var(--text-s)">Precio venta medio real</div><div style="font-weight:bold">${r.precioVentaMedio!=null?eur(r.precioVentaMedio)+'/kg':'Sin ventas todavía'}</div></div>
+        <div><div style="font-size:11px;color:var(--text-s)">Precio de catálogo (Productos)</div><div style="font-weight:bold">${precioCatalogoMedio!=null?eur(precioCatalogoMedio)+'/kg':'Sin productos con precio'}</div></div>
+      </div>
+      ${r.margenPorKg!=null ? `<div style="font-size:14px"><strong>Margen real: ${eur(r.margenPorKg)}/kg (${r.margenPorKgPct.toFixed(1)}%)</strong></div>` : ''}
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-top:12px;flex-wrap:wrap">
+        <div><label style="font-size:11px;color:var(--text-s);display:block">Simular precio de venta (€/kg)</label>
+          <input class="input" type="number" step="0.01" id="rk-precio-simulado" value="${(precioCatalogoMedio ?? r.precioVentaMedio)!=null?(precioCatalogoMedio ?? r.precioVentaMedio).toFixed(2):''}" style="width:120px"></div>
+        <button class="btn btn-secondary btn-sm" onclick="simularMargenKilo(${r.costePorKg||0})">Calcular margen simulado</button>
+        <span id="rk-resultado-simulado" style="font-weight:bold"></span>
+      </div>
+    </div>
     <div class="form-grid" style="margin-bottom:12px">
       <div class="form-group"><label>Categoría</label><select class="select" id="cc-categoria">
         ${CATEGORIAS_COSTE_CULTIVO.map(c=>`<option>${c}</option>`).join('')}
@@ -2736,6 +2845,16 @@ function renderModalCostesCultivo(cultivo){
     </div>
     <p style="text-align:right;margin-top:10px;font-weight:bold">Total: ${eur(total)}</p>
   `, `<button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>`);
+}
+
+function simularMargenKilo(costePorKg){
+  const precio = parseFloat(document.getElementById('rk-precio-simulado').value)||0;
+  const span = document.getElementById('rk-resultado-simulado');
+  if(!costePorKg){ span.textContent = 'Registra kg cosechados en Lotes para poder simular.'; span.style.color='var(--text-s)'; return; }
+  const margen = precio - costePorKg;
+  const pct = precio>0 ? margen/precio*100 : 0;
+  span.textContent = `Margen simulado: ${eur(margen)}/kg (${pct.toFixed(1)}%)`;
+  span.style.color = margen>=0 ? 'var(--green)' : 'var(--red)';
 }
 
 async function anadirCosteCultivo(cultivo){
@@ -3041,7 +3160,26 @@ function renderRentabilidad(){
   `;
   const cultivos=CULTIVOS.map(c=>c.nombre);
   const cGas=cultivos.map(c=>filtered.filter(f=>f.tipo==='P'&&f.cultivo===c).reduce((s,f)=>s+f.total,0)+costesDetalleAnio.filter(x=>x.cultivo===c).reduce((s,x)=>s+(parseFloat(x.importe)||0),0));
-  const cIng=cultivos.map(c=>filtered.filter(f=>f.tipo==='C'&&f.cultivo===c).reduce((s,f)=>s+f.total,0));
+  // Ingresos por cultivo: por producto de cada línea (enlace real o nombre), no por
+  // el cultivo de cabecera de la factura — una factura puede mezclar varios cultivos.
+  const catalogoProdRent = dbGet('productos');
+  const cultivoDeLineaRent = (linea)=>{
+    const pid = linea.productoId ?? linea.prodId;
+    if(pid!=null && pid!==''){ const p=catalogoProdRent.find(x=>x.id===parseInt(pid)); if(p) return p.cultivo||null; }
+    const d=(linea.desc||linea.nombre||'').toLowerCase();
+    const match=catalogoProdRent.find(p=>p.nombre && (d.includes(p.nombre.toLowerCase())||p.nombre.toLowerCase().includes(d)));
+    return match?.cultivo||null;
+  };
+  const ingPorCultivoAnio = {};
+  filtered.filter(f=>f.tipo==='C').forEach(f=>(f.lineas||[]).forEach(l=>{
+    const cult = cultivoDeLineaRent(l);
+    if(cult) ingPorCultivoAnio[cult] = (ingPorCultivoAnio[cult]||0) + (parseFloat(l.imp)||0);
+  }));
+  dbGet('ventas_tienda').filter(v=>v.fecha?.startsWith(anio)).forEach(v=>(v.lineas||[]).forEach(l=>{
+    const cult = cultivoDeLineaRent(l);
+    if(cult){ const cant=parseFloat(l.cantidad ?? l.uds)||0; ingPorCultivoAnio[cult] = (ingPorCultivoAnio[cult]||0) + cant*(parseFloat(l.precio)||0); }
+  }));
+  const cIng=cultivos.map(c=>ingPorCultivoAnio[c]||0);
   document.getElementById('rent-tbody').innerHTML=cultivos.map((c,i)=>{
     const m=cIng[i]-cGas[i];
     const p=cIng[i]>0?(m/cIng[i]*100).toFixed(1):0;
@@ -3077,46 +3215,64 @@ function renderRentabilidad(){
     chRentCliente = new Chart(document.getElementById('ch-rent-cliente'), {type:'bar', data:{labels:top10Cli.map(f=>f.nombre), datasets:[{label:'Total facturado', data:top10Cli.map(f=>f.total), backgroundColor:'rgba(46,125,50,.7)'}]}, options:{responsive:true, indexAxis:'y', plugins:{legend:{display:false}}}});
   }
 
-  // ── Rentabilidad por producto (coste estimado repartido desde el cultivo) ──
+  // ── Rentabilidad por producto — usa el coste real €/kg del cultivo (Costes + Lotes)
+  //    cuando hay datos; si no, reparte el gasto del cultivo por ingresos (estimación).
+  //    Prioriza el enlace exacto por productoId; si no existe, compara por nombre. ──
   const gastoPorCultivo = {};
   cultivos.forEach((c,i)=>{ gastoPorCultivo[c] = cGas[i]; });
   const catalogoProductos = dbGet('productos');
-  const cultivoDeProducto = (desc)=>{
-    const d = (desc||'').toLowerCase();
+  const cultivoDeLinea = (linea)=>{
+    const pid = linea.productoId ?? linea.prodId;
+    if(pid!=null && pid!==''){ const p = catalogoProductos.find(x=>x.id===parseInt(pid)); if(p) return p.cultivo||null; }
+    const d = (linea.desc||linea.nombre||'').toLowerCase();
     const match = catalogoProductos.find(p=>p.nombre && (d.includes(p.nombre.toLowerCase())||p.nombre.toLowerCase().includes(d)));
     return match?.cultivo || null;
   };
   const ventasTiendaAnio = dbGet('ventas_tienda').filter(v=>v.fecha?.startsWith(anio));
-  const ingresoPorProducto = {};
+  const ingresoPorProducto = {}; // desc -> {ing, uds}
   factsCliAnio.forEach(f=>(f.lineas||[]).forEach(l=>{
     const desc = l.desc||'Sin descripción';
-    if(!ingresoPorProducto[desc]) ingresoPorProducto[desc] = 0;
-    ingresoPorProducto[desc] += parseFloat(l.imp)||0;
+    if(!ingresoPorProducto[desc]) ingresoPorProducto[desc] = {ing:0, uds:0, linea:l};
+    ingresoPorProducto[desc].ing += parseFloat(l.imp)||0;
+    ingresoPorProducto[desc].uds += parseFloat(l.uds)||0;
   }));
   ventasTiendaAnio.forEach(v=>(v.lineas||[]).forEach(l=>{
     const desc = l.nombre||l.desc||'Sin descripción';
-    const importe = (parseFloat(l.cantidad ?? l.uds)||0)*(parseFloat(l.precio)||0);
-    if(!ingresoPorProducto[desc]) ingresoPorProducto[desc] = 0;
-    ingresoPorProducto[desc] += importe;
+    const cant = parseFloat(l.cantidad ?? l.uds)||0;
+    const importe = cant*(parseFloat(l.precio)||0);
+    if(!ingresoPorProducto[desc]) ingresoPorProducto[desc] = {ing:0, uds:0, linea:l};
+    ingresoPorProducto[desc].ing += importe;
+    ingresoPorProducto[desc].uds += cant;
   }));
-  // Agrupar ingresos por cultivo para poder repartir el gasto proporcionalmente
+  // Reparto por ingresos, solo como respaldo para cultivos sin kg registrados en Lotes
   const ingresoPorCultivoDeProductos = {};
-  Object.entries(ingresoPorProducto).forEach(([desc,ing])=>{
-    const cult = cultivoDeProducto(desc) || 'Sin asignar';
-    ingresoPorCultivoDeProductos[cult] = (ingresoPorCultivoDeProductos[cult]||0) + ing;
+  Object.entries(ingresoPorProducto).forEach(([desc,d])=>{
+    const cult = cultivoDeLinea(d.linea) || 'Sin asignar';
+    ingresoPorCultivoDeProductos[cult] = (ingresoPorCultivoDeProductos[cult]||0) + d.ing;
   });
-  const filasProducto = Object.entries(ingresoPorProducto).map(([desc,ing])=>{
-    const cult = cultivoDeProducto(desc) || 'Sin asignar';
-    const gastoCult = gastoPorCultivo[cult] || 0;
-    const ingresoTotalCult = ingresoPorCultivoDeProductos[cult] || 0;
-    const costeEstimado = (cult!=='Sin asignar' && ingresoTotalCult>0) ? gastoCult*(ing/ingresoTotalCult) : 0;
-    const margen = ing - costeEstimado;
-    const margenPct = ing>0 ? (margen/ing*100) : 0;
-    return { producto:desc, cultivo:cult, ingresos:ing, coste:costeEstimado, margen, margenPct };
+  const cacheRentCultivo = {};
+  const filasProducto = Object.entries(ingresoPorProducto).map(([desc,d])=>{
+    const cult = cultivoDeLinea(d.linea) || 'Sin asignar';
+    let costeEstimado, esReal=false;
+    if(cult!=='Sin asignar'){
+      if(!cacheRentCultivo[cult]) cacheRentCultivo[cult] = calcularRentabilidadCultivo(cult);
+      const r = cacheRentCultivo[cult];
+      if(r.costePorKg!=null){
+        costeEstimado = r.costePorKg * d.uds; // coste real: €/kg del cultivo × kg de este producto
+        esReal = true;
+      } else {
+        const gastoCult = gastoPorCultivo[cult] || 0;
+        const ingresoTotalCult = ingresoPorCultivoDeProductos[cult] || 0;
+        costeEstimado = ingresoTotalCult>0 ? gastoCult*(d.ing/ingresoTotalCult) : 0;
+      }
+    } else costeEstimado = 0;
+    const margen = d.ing - costeEstimado;
+    const margenPct = d.ing>0 ? (margen/d.ing*100) : 0;
+    return { producto:desc, cultivo:cult, ingresos:d.ing, coste:costeEstimado, margen, margenPct, esReal };
   }).sort((a,b)=>b.margen-a.margen);
   document.getElementById('rent-producto-tbody').innerHTML = filasProducto.length ? filasProducto.map(f=>`
     <tr><td><strong>${f.producto}</strong></td><td>${f.cultivo==='Sin asignar'?'<span style="color:var(--text-s)">Sin asignar</span>':iconoCultivo(f.cultivo)+' '+f.cultivo}</td>
-    <td>${eur(f.ingresos)}</td><td>${eur(f.coste)}</td>
+    <td>${eur(f.ingresos)}</td><td>${eur(f.coste)} ${f.cultivo!=='Sin asignar'?`<span style="font-size:10px;color:var(--text-s)">${f.esReal?'real':'estimado'}</span>`:''}</td>
     <td style="color:${f.margen>=0?'var(--green)':'var(--red)'}">${eur(f.margen)}</td>
     <td style="color:${f.margen>=0?'var(--green)':'var(--red)'}">${f.margenPct.toFixed(1)}%</td></tr>
   `).join('') : '<tr><td colspan="6" style="color:var(--text-s)">Sin ventas este año.</td></tr>';
@@ -3913,22 +4069,40 @@ async function exportTiendaExcelDiasMeses(){
 }
 
 async function exportTicketsExcel(){
-  const tks = dbGet('tickets').slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-  if(!tks.length){ toast('No hay días registrados para exportar','err'); return; }
-  const headers=['Fecha','Venta Ticket','Venta Datáfono','Total día','Notas'];
-  const filas=[];
-  let tTicket=0, tDatafono=0;
-  tks.forEach(t=>{
-    const total=(parseFloat(t.ticket)||0)+(parseFloat(t.datafono)||0);
-    tTicket+=parseFloat(t.ticket)||0; tDatafono+=parseFloat(t.datafono)||0;
-    filas.push([fmtDate(t.fecha), t.ticket||0, t.datafono||0, total, t.notas||'']);
-  });
-  const filaTotalIdx = filas.length;
-  filas.push(['TOTAL', tTicket, tDatafono, tTicket+tDatafono, '']);
-  const wb = new ExcelJS.Workbook();
-  hojaEstilizada(wb, 'Ticket Tienda', headers, filas, {colsMoneda:[2,3,4], colsCentrado:[1], filasDestacadas:[filaTotalIdx]});
-  await descargarWorkbook(wb, 'ticket_tienda_'+today()+'.xlsx');
-  toast(`✅ Excel generado con ${tks.length} día(s)`);
+  const tks = dbGet('tickets');
+  const ventasTienda = dbGet('ventas_tienda');
+  if(!tks.length && !ventasTienda.length){ toast('No hay datos de tienda para exportar','err'); return; }
+  try{
+    // Combina Ticket Tienda (manual, sumando si hay varios el mismo día) + TPV
+    const porDia = {};
+    tks.forEach(t=>{
+      if(!porDia[t.fecha]) porDia[t.fecha] = {ticket:0, datafono:0, notas:[]};
+      porDia[t.fecha].ticket += parseFloat(t.ticket)||0;
+      porDia[t.fecha].datafono += parseFloat(t.datafono)||0;
+      if(t.notas) porDia[t.fecha].notas.push(t.notas);
+    });
+    ventasTienda.forEach(v=>{
+      if(!porDia[v.fecha]) porDia[v.fecha] = {ticket:0, datafono:0, notas:[]};
+      if(v.metodoPago==='datafono') porDia[v.fecha].datafono += parseFloat(v.total)||0;
+      else porDia[v.fecha].ticket += parseFloat(v.total)||0;
+    });
+    const dias = Object.keys(porDia).sort();
+    const headers=['Fecha','Venta Ticket','Venta Datáfono','Total día','Notas'];
+    const filas=[];
+    let tTicket=0, tDatafono=0;
+    dias.forEach(d=>{
+      const t = porDia[d];
+      const total = t.ticket+t.datafono;
+      tTicket+=t.ticket; tDatafono+=t.datafono;
+      filas.push([fmtDate(d), t.ticket, t.datafono, total, t.notas.join('; ')]);
+    });
+    const filaTotalIdx = filas.length;
+    filas.push(['TOTAL', tTicket, tDatafono, tTicket+tDatafono, '']);
+    const wb = new ExcelJS.Workbook();
+    hojaEstilizada(wb, 'Ticket Tienda + TPV', headers, filas, {colsMoneda:[2,3,4], colsCentrado:[1], filasDestacadas:[filaTotalIdx]});
+    await descargarWorkbook(wb, 'ticket_tienda_'+today()+'.xlsx');
+    toast(`✅ Excel generado con ${dias.length} día(s)`);
+  }catch(e){ console.error(e); toast('Error al generar el Excel: '+e.message,'err'); }
 }
 
 // ════════════════════════════════════════════════════
@@ -3945,8 +4119,10 @@ const DIAS_SEMANA=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','S
 
 async function exportExcelMensualCompleto(){
   const mes = document.getElementById('rep-mes').value || today().slice(0,7);
+  try{
   const facts = dbGet('facturas').filter(f=>(f.fecha||'').slice(0,7)===mes);
   const tks = dbGet('tickets').filter(t=>(t.fecha||'').slice(0,7)===mes);
+  const ventasTiendaMes = dbGet('ventas_tienda').filter(v=>(v.fecha||'').slice(0,7)===mes);
 
   // ── Hoja 1: Listado de facturas del mes ──
   const headersFacturas=['Nº','Tipo','Fecha','Entidad','NIF/CIF','Albarán','Pedido','Base','IVA %','IVA €','Recargo €','Total','Estado'];
@@ -3964,25 +4140,35 @@ async function exportExcelMensualCompleto(){
   hojaFacturas.push(['TOTAL CLIENTES','', '', '', '', '', '', totalBaseCli, '', '', '', totalCli, '']);
   hojaFacturas.push(['TOTAL PROVEEDORES','', '', '', '', '', '', totalBaseProv, '', '', '', totalProv, '']);
 
-  // ── Hoja 2: Ticket Tienda día a día del mes (con huecos rellenos a 0) ──
+  // ── Hoja 2: Ticket Tienda + TPV, día a día del mes (con huecos rellenos a 0) ──
+  // Se suman los dos sistemas: entrada manual (Ticket Tienda, pudiendo haber varias
+  // el mismo día) + venta por venta (TPV).
   const tksPorDia = {};
-  tks.forEach(t=>{ tksPorDia[t.fecha] = t; });
+  tks.forEach(t=>{
+    if(!tksPorDia[t.fecha]) tksPorDia[t.fecha] = {ticket:0, datafono:0, notas:[]};
+    tksPorDia[t.fecha].ticket += parseFloat(t.ticket)||0;
+    tksPorDia[t.fecha].datafono += parseFloat(t.datafono)||0;
+    if(t.notas) tksPorDia[t.fecha].notas.push(t.notas);
+  });
+  const ventasTiendaPorDia = {};
+  ventasTiendaMes.forEach(v=>{ (ventasTiendaPorDia[v.fecha] = ventasTiendaPorDia[v.fecha]||[]).push(v); });
   const dias = diasDelMes(mes);
   const headersTickets=['Fecha','Día semana','Venta Ticket','Venta Datáfono','Total día','Notas'];
   const hojaTickets=[];
   let sumTicket=0, sumDatafono=0;
   dias.forEach(d=>{
     const t = tksPorDia[d];
-    const ticket = t?parseFloat(t.ticket)||0:0;
-    const datafono = t?parseFloat(t.datafono)||0:0;
+    const ventasDia = ventasTiendaPorDia[d]||[];
+    const ticket = (t?t.ticket:0) + ventasDia.filter(v=>v.metodoPago!=='datafono').reduce((s,v)=>s+(parseFloat(v.total)||0),0);
+    const datafono = (t?t.datafono:0) + ventasDia.filter(v=>v.metodoPago==='datafono').reduce((s,v)=>s+(parseFloat(v.total)||0),0);
     sumTicket+=ticket; sumDatafono+=datafono;
     const dow = DIAS_SEMANA[new Date(d+'T00:00:00').getDay()];
-    hojaTickets.push([fmtDate(d), dow, ticket, datafono, ticket+datafono, t?.notas||'']);
+    hojaTickets.push([fmtDate(d), dow, ticket, datafono, ticket+datafono, t?.notas.join('; ')||'']);
   });
   const destacadaTickets=[hojaTickets.length];
   hojaTickets.push(['TOTAL MES','', sumTicket, sumDatafono, sumTicket+sumDatafono, '']);
 
-  // ── Hoja 3: Estadísticas de ventas por día (facturas cliente + ticket + datáfono) ──
+  // ── Hoja 3: Estadísticas de ventas por día (facturas cliente + Ticket Tienda + TPV) ──
   const ventasFacturaPorDia = {};
   facts.filter(f=>f.tipo==='C').forEach(f=>{
     ventasFacturaPorDia[f.fecha] = (ventasFacturaPorDia[f.fecha]||0) + (parseFloat(f.total)||0);
@@ -3993,16 +4179,27 @@ async function exportExcelMensualCompleto(){
   dias.forEach(d=>{
     const vf = ventasFacturaPorDia[d]||0;
     const t = tksPorDia[d];
-    const ticket = t?parseFloat(t.ticket)||0:0;
-    const datafono = t?parseFloat(t.datafono)||0:0;
+    const ventasDia = ventasTiendaPorDia[d]||[];
+    const ticket = (t?t.ticket:0) + ventasDia.filter(v=>v.metodoPago!=='datafono').reduce((s,v)=>s+(parseFloat(v.total)||0),0);
+    const datafono = (t?t.datafono:0) + ventasDia.filter(v=>v.metodoPago==='datafono').reduce((s,v)=>s+(parseFloat(v.total)||0),0);
     const totalDia = vf+ticket+datafono;
     acumFact+=vf; acumTicket+=ticket; acumDataf+=datafono; acumTotal+=totalDia;
     const dow = DIAS_SEMANA[new Date(d+'T00:00:00').getDay()];
     hojaStats.push([fmtDate(d), dow, vf, ticket, datafono, totalDia]);
   });
-  const diasConVenta = dias.filter(d=>(ventasFacturaPorDia[d]||0)+(tksPorDia[d]?(parseFloat(tksPorDia[d].ticket)||0)+(parseFloat(tksPorDia[d].datafono)||0):0) > 0).length;
+  const diasConVenta = dias.filter(d=>{
+    const vf = ventasFacturaPorDia[d]||0;
+    const t = tksPorDia[d];
+    const ventasDia = ventasTiendaPorDia[d]||[];
+    const tienda = (t?t.ticket+t.datafono:0) + ventasDia.reduce((s,v)=>s+(parseFloat(v.total)||0),0);
+    return (vf+tienda) > 0;
+  }).length;
   const mejorDia = dias.reduce((best,d)=>{
-    const v=(ventasFacturaPorDia[d]||0)+(tksPorDia[d]?(parseFloat(tksPorDia[d].ticket)||0)+(parseFloat(tksPorDia[d].datafono)||0):0);
+    const vf = ventasFacturaPorDia[d]||0;
+    const t = tksPorDia[d];
+    const ventasDia = ventasTiendaPorDia[d]||[];
+    const tienda = (t?t.ticket+t.datafono:0) + ventasDia.reduce((s,v)=>s+(parseFloat(v.total)||0),0);
+    const v = vf+tienda;
     return v>best.v?{d,v}:best;
   },{d:'',v:0});
   const destacadasStats=[hojaStats.length, hojaStats.length+1, hojaStats.length+2];
@@ -4010,17 +4207,18 @@ async function exportExcelMensualCompleto(){
   hojaStats.push(['Media diaria (días con venta)','', '', '', '', diasConVenta?(acumTotal/diasConVenta):0]);
   hojaStats.push(['Mejor día','', '', '', '', mejorDia.d?fmtDate(mejorDia.d)+' ('+eur(mejorDia.v)+')':'—']);
 
-  if(!facts.length && !tks.length){ toast('No hay datos (facturas ni tickets) para ese mes','err'); return; }
+  if(!facts.length && !tks.length && !ventasTiendaMes.length){ toast('No hay datos (facturas ni tienda) para ese mes','err'); return; }
   toast('Generando Excel con gráficos, un momento…','info');
 
-  // ── Hoja 4: Ventas por canal (del mes) ──
-  const porCanalMes = agregarPorCanal(facts);
+  // ── Hoja 4: Ventas por canal (del mes, incluye Tienda propia) ──
+  const desdeMes = `${mes}-01`, hastaMes = `${mes}-31`;
+  const porCanalMes = agregarPorCanal(facts, desdeMes, hastaMes);
   const headersCanal = ['Canal','Total ventas €','% del total'];
   const totalCanalMes = Object.values(porCanalMes).reduce((s,v)=>s+v,0)||1;
   const filasCanal = Object.entries(CANALES).map(([v,l])=>[l, porCanalMes[v]||0, ((porCanalMes[v]||0)/totalCanalMes*100)]);
 
-  // ── Hoja 5: Productos vendidos (del mes) ──
-  const productosMes = agregarProductosVendidos(facts);
+  // ── Hoja 5: Productos vendidos (del mes, incluye TPV) ──
+  const productosMes = agregarProductosVendidos(facts, null, ventasTiendaMes);
   const headersProd = ['Producto','Cantidad total','Importe total €'];
   const filasProd = productosMes.map(p=>[p.desc, p.uds, p.importe]);
 
@@ -4031,43 +4229,60 @@ async function exportExcelMensualCompleto(){
   hojaEstilizada(wb, 'Ventas por canal', headersCanal, filasCanal, {colsMoneda:[2], colsCentrado:[3]});
   hojaEstilizada(wb, 'Productos vendidos', headersProd, filasProd, {colsMoneda:[3], colsCentrado:[2]});
 
-  // ── Hoja 6: Gráficos ──
+  // ── Hoja 6: Gráficos (si falla, no impide descargar el resto) ──
   if(filasCanal.some(f=>f[1]>0) || filasProd.length){
-    const wsGraf = wb.addWorksheet('Gráficos');
-    let filaImg = 1;
-    if(filasCanal.some(f=>f[1]>0)){
-      const imgCanal = await generarGraficoImagen({ type:'doughnut', labels:filasCanal.map(f=>f[0]), datasets:[{label:'Ventas (€)', data:filasCanal.map(f=>+f[1].toFixed(2))}], titulo:'Ventas por canal', subtitulo:mes });
-      const idCanal = wb.addImage({ base64:imgCanal, extension:'png' });
-      wsGraf.addImage(idCanal, { tl:{col:0,row:filaImg}, ext:{width:640,height:320} });
-      filaImg += 20;
-    }
-    if(filasProd.length){
-      const top8 = productosMes.slice(0,8);
-      const imgProd = await generarGraficoImagen({ type:'bar', labels:top8.map(p=>p.desc.length>20?p.desc.slice(0,19)+'…':p.desc), datasets:[{label:'Importe (€)', data:top8.map(p=>+p.importe.toFixed(2))}], titulo:'Productos más vendidos', subtitulo:mes });
-      const idProd = wb.addImage({ base64:imgProd, extension:'png' });
-      wsGraf.addImage(idProd, { tl:{col:0,row:filaImg}, ext:{width:640,height:320} });
-    }
+    try{
+      const wsGraf = wb.addWorksheet('Gráficos');
+      let filaImg = 1;
+      if(filasCanal.some(f=>f[1]>0)){
+        const imgCanal = await generarGraficoImagen({ type:'doughnut', labels:filasCanal.map(f=>f[0]), datasets:[{label:'Ventas (€)', data:filasCanal.map(f=>+f[1].toFixed(2))}], titulo:'Ventas por canal', subtitulo:mes });
+        const idCanal = wb.addImage({ base64:imgCanal, extension:'png' });
+        wsGraf.addImage(idCanal, { tl:{col:0,row:filaImg}, ext:{width:640,height:320} });
+        filaImg += 20;
+      }
+      if(filasProd.length){
+        const top8 = productosMes.slice(0,8);
+        const imgProd = await generarGraficoImagen({ type:'bar', labels:top8.map(p=>p.desc.length>20?p.desc.slice(0,19)+'…':p.desc), datasets:[{label:'Importe (€)', data:top8.map(p=>+p.importe.toFixed(2))}], titulo:'Productos más vendidos', subtitulo:mes });
+        const idProd = wb.addImage({ base64:imgProd, extension:'png' });
+        wsGraf.addImage(idProd, { tl:{col:0,row:filaImg}, ext:{width:640,height:320} });
+      }
+    }catch(eGrafico){ console.warn('No se pudieron generar los gráficos del Excel mensual:', eGrafico.message); }
   }
 
   await descargarWorkbook(wb, `excel_mensual_${mes}.xlsx`);
   toast(`✅ Excel de ${mes} generado (facturas, ticket/datáfono, canal, productos y gráficos)`);
+  }catch(e){
+    console.error(e);
+    toast('Error al generar el Excel mensual: '+e.message,'err');
+  }
 }
 
 async function exportInformeMensualExcel(){
   const facts = dbGet('facturas');
-  if(!facts.length){ toast('No hay facturas para el informe','err'); return; }
+  const ventasTienda = dbGet('ventas_tienda');
+  const tickets = dbGet('tickets');
+  if(!facts.length && !ventasTienda.length){ toast('No hay facturas ni ventas de tienda para el informe','err'); return; }
+  try{
   const meses = {};
   facts.forEach(f=>{
     const mes = (f.fecha||'').slice(0,7); // YYYY-MM
     if(!mes) return;
-    if(!meses[mes]) meses[mes] = {mes, nProv:0, baseProv:0, totalProv:0, nCli:0, baseCli:0, totalCli:0};
+    if(!meses[mes]) meses[mes] = {mes, nProv:0, baseProv:0, totalProv:0, nCli:0, baseCli:0, totalCli:0, tienda:0};
     if(f.tipo==='P'){ meses[mes].nProv++; meses[mes].baseProv+=parseFloat(f.base)||0; meses[mes].totalProv+=parseFloat(f.total)||0; }
     else { meses[mes].nCli++; meses[mes].baseCli+=parseFloat(f.base)||0; meses[mes].totalCli+=parseFloat(f.total)||0; }
   });
-  const headersResumen=['Mes','Nº Fact. Clientes','Base Clientes','Total Clientes','Nº Fact. Proveedores','Base Proveedores','Total Proveedores','Balance del mes'];
+  // Ventas de Tienda (Ticket manual + TPV) por mes
+  const tiendaPorMes = {};
+  tickets.forEach(t=>{ const mes=(t.fecha||'').slice(0,7); if(!mes) return; tiendaPorMes[mes]=(tiendaPorMes[mes]||0)+(parseFloat(t.ticket)||0)+(parseFloat(t.datafono)||0); });
+  ventasTienda.forEach(v=>{ const mes=(v.fecha||'').slice(0,7); if(!mes) return; tiendaPorMes[mes]=(tiendaPorMes[mes]||0)+(parseFloat(v.total)||0); });
+  Object.keys(tiendaPorMes).forEach(mes=>{
+    if(!meses[mes]) meses[mes] = {mes, nProv:0, baseProv:0, totalProv:0, nCli:0, baseCli:0, totalCli:0, tienda:0};
+    meses[mes].tienda = tiendaPorMes[mes];
+  });
+  const headersResumen=['Mes','Nº Fact. Clientes','Base Clientes','Total Clientes','Ventas Tienda (ticket+TPV)','Nº Fact. Proveedores','Base Proveedores','Total Proveedores','Balance del mes'];
   const filas=[];
   Object.values(meses).sort((a,b)=>a.mes.localeCompare(b.mes)).forEach(m=>{
-    filas.push([m.mes, m.nCli, m.baseCli, m.totalCli, m.nProv, m.baseProv, m.totalProv, m.totalCli-m.totalProv]);
+    filas.push([m.mes, m.nCli, m.baseCli, m.totalCli, m.tienda||0, m.nProv, m.baseProv, m.totalProv, (m.totalCli+(m.tienda||0))-m.totalProv]);
   });
   const headersDetalle=['Mes','Nº Factura','Tipo','Fecha','Entidad','Base','IVA %','IVA €','Total','Estado'];
   const detalle=[];
@@ -4077,13 +4292,17 @@ async function exportInformeMensualExcel(){
     detalle.push([(f.fecha||'').slice(0,7), f.num, esProv?'Proveedor':'Cliente', fmtDate(f.fecha), entidad.nombre||'', f.base||0, f.iva||0, f.ivaImp||0, f.total||0, f.estado]);
   });
 
-  // ── Ventas por canal y mes ──
+  // ── Ventas por canal y mes (incluye Tienda propia) ──
   const canalPorMes = {};
   facts.filter(f=>f.tipo==='C').forEach(f=>{
     const mes=(f.fecha||'').slice(0,7); if(!mes) return;
     const canal=canalDeCliente(f.cliId);
     if(!canalPorMes[mes]) canalPorMes[mes]={};
     canalPorMes[mes][canal]=(canalPorMes[mes][canal]||0)+(parseFloat(f.total)||0);
+  });
+  Object.entries(tiendaPorMes).forEach(([mes,total])=>{
+    if(!canalPorMes[mes]) canalPorMes[mes]={};
+    canalPorMes[mes]['tienda']=(canalPorMes[mes]['tienda']||0)+total;
   });
   const headersCanalMes=['Mes', ...Object.values(CANALES), 'TOTAL'];
   const filasCanalMes=[];
@@ -4095,18 +4314,19 @@ async function exportInformeMensualExcel(){
     filasCanalMes.push(fila);
   });
 
-  // ── Productos vendidos (histórico completo) ──
-  const productosHist = agregarProductosVendidos(facts);
+  // ── Productos vendidos (histórico completo, Facturas + TPV) ──
+  const productosHist = agregarProductosVendidos(facts, null, ventasTienda);
   const headersProdHist=['Producto','Cantidad total','Importe total €'];
   const filasProdHist = productosHist.map(p=>[p.desc, p.uds, p.importe]);
 
   const wb = new ExcelJS.Workbook();
-  hojaEstilizada(wb, 'Informe mensual', headersResumen, filas, {colsMoneda:[3,4,6,7,8], colsCentrado:[1,2,5]});
+  hojaEstilizada(wb, 'Informe mensual', headersResumen, filas, {colsMoneda:[3,4,5,7,8,9], colsCentrado:[1,2,6]});
   hojaEstilizada(wb, 'Ventas por canal y mes', headersCanalMes, filasCanalMes, {colsMoneda:[2,3,4,5,6,7], colsCentrado:[1]});
   hojaEstilizada(wb, 'Productos vendidos (histórico)', headersProdHist, filasProdHist, {colsMoneda:[3], colsCentrado:[2]});
   hojaEstilizada(wb, 'Detalle facturas', headersDetalle, detalle, {colsMoneda:[6,8,9], colsCentrado:[1,3,4,7]});
   await descargarWorkbook(wb, 'informe_mensual_facturacion_'+today()+'.xlsx');
-  toast('✅ Informe mensual generado (con canal y productos)');
+  toast('✅ Informe mensual generado (con canal, tienda y productos)');
+  }catch(e){ console.error(e); toast('Error al generar el Excel: '+e.message,'err'); }
 }
 
 // ════════════════════════════════════════════════════
@@ -4195,18 +4415,45 @@ function actualizarProductosClienteNF(){
   bloque.style.display='block';
   if(bloqueAlb) bloqueAlb.style.display='block';
   chips.innerHTML = productos.length
-    ? productos.map((p,idx)=>`<span class="badge badge-blue" style="cursor:pointer" onclick="agregarLineaDesdeProducto(${id},${idx})" title="Clic para añadir esta línea">+ ${p.nombre} (${p.precio.toFixed(2)}€/${p.unidad})</span>`).join('')
+    ? productos.map((p,idx)=>`<span class="badge badge-blue" style="cursor:pointer" onclick="agregarLineaDesdeProducto(${id},${idx})" title="Clic para añadir esta línea">${p.productoId?'🔗 ':''}+ ${p.nombre} (${p.precio.toFixed(2)}€/${p.unidad})</span>`).join('')
     : '<span style="color:var(--text-s);font-size:12px">Este cliente todavía no tiene productos guardados.</span>';
+  const sel = document.getElementById('ncp-producto-select');
+  const catalogo = dbGet('productos');
+  sel.innerHTML = '<option value="">— Elegir del catálogo —</option>' +
+    catalogo.map(p=>`<option value="${p.id}">${iconoCultivo(p.cultivo)} ${p.nombre}</option>`).join('') +
+    '<option value="__otro__">✏️ Otro (nombre libre, sin vincular al catálogo)</option>';
+  document.getElementById('ncp-nombre').style.display='none';
+  document.getElementById('ncp-nombre').value='';
 }
+
+function cambioProductoCatalogoNCP(){
+  const val = document.getElementById('ncp-producto-select').value;
+  const nombreInput = document.getElementById('ncp-nombre');
+  const unidadInput = document.getElementById('ncp-unidad');
+  const precioInput = document.getElementById('ncp-precio');
+  if(val==='__otro__'){
+    nombreInput.style.display='';
+    nombreInput.value='';
+    unidadInput.value='';
+    precioInput.value='';
+  } else if(val){
+    const p = dbGet('productos').find(x=>x.id===parseInt(val));
+    nombreInput.style.display='none';
+    if(p){ unidadInput.value=p.unidad||''; precioInput.value=p.pventa||''; }
+  } else {
+    nombreInput.style.display='none';
+  }
+}
+
 function agregarLineaDesdeProducto(clienteId, idx){
   const c=dbGet('clientes').find(x=>x.id===clienteId);
   const p=c.productos[idx];
   if(!p) return;
   if(nfLineas.length===1 && !nfLineas[0].desc){
-    nfLineas[0].desc=`${p.nombre} (${p.unidad})`; nfLineas[0].uds=1; nfLineas[0].precio=p.precio; nfLineas[0].imp=p.precio;
+    nfLineas[0].desc=`${p.nombre} (${p.unidad})`; nfLineas[0].uds=1; nfLineas[0].precio=p.precio; nfLineas[0].imp=p.precio; nfLineas[0].productoId=p.productoId||null;
   } else {
     const id='l'+Date.now()+Math.random().toString(36).slice(2,5);
-    nfLineas.push({id,alb:'',ped:'',desc:`${p.nombre} (${p.unidad})`,uds:1,precio:p.precio,imp:p.precio});
+    nfLineas.push({id,alb:'',ped:'',desc:`${p.nombre} (${p.unidad})`,uds:1,precio:p.precio,imp:p.precio,productoId:p.productoId||null});
   }
   renderLineas();
   calcTotales();
@@ -4214,14 +4461,26 @@ function agregarLineaDesdeProducto(clienteId, idx){
 async function anadirProductoClienteNF(){
   const id=parseInt(document.getElementById('nf-cli').value)||null;
   if(!id){ toast('Elige primero un cliente','err'); return; }
-  const nombre=document.getElementById('ncp-nombre').value.trim();
+  const selVal = document.getElementById('ncp-producto-select').value;
+  if(!selVal){ toast('Elige un producto del catálogo, o "Otro"','err'); return; }
+  let nombre, productoId=null;
+  if(selVal==='__otro__'){
+    nombre = document.getElementById('ncp-nombre').value.trim();
+    if(!nombre){ toast('Indica el nombre del producto','err'); return; }
+  } else {
+    const p = dbGet('productos').find(x=>x.id===parseInt(selVal));
+    if(!p){ toast('Producto no encontrado en el catálogo','err'); return; }
+    nombre = p.nombre;
+    productoId = p.id;
+  }
   const precio=parseFloat(document.getElementById('ncp-precio').value)||0;
   const unidad=document.getElementById('ncp-unidad').value.trim()||'ud';
-  if(!nombre){ toast('Indica el nombre del producto','err'); return; }
   const c=dbGet('clientes').find(x=>x.id===id);
-  const productos=[...(c.productos||[]), {nombre,precio,unidad}];
+  const productos=[...(c.productos||[]), {nombre,precio,unidad,productoId}];
   await guardarProductosCliente(id, productos);
+  document.getElementById('ncp-producto-select').value='';
   document.getElementById('ncp-nombre').value='';
+  document.getElementById('ncp-nombre').style.display='none';
   document.getElementById('ncp-precio').value='';
   document.getElementById('ncp-unidad').value='';
   actualizarProductosClienteNF();
@@ -4233,11 +4492,15 @@ async function anadirProductoClienteNF(){
 function renderProductos(){
   const prods=dbGet('productos');
   document.getElementById('prod-tbody').innerHTML=prods.map(p=>{
-    const margen=p.pventa>0?((p.pventa-p.coste)/p.pventa*100).toFixed(1):0;
+    const r = p.cultivo ? calcularRentabilidadCultivo(p.cultivo) : null;
+    const costeReal = r && r.costePorKg!=null ? r.costePorKg : null;
+    const costeUsado = costeReal!=null ? costeReal : (parseFloat(p.coste)||0);
+    const margen = p.pventa>0 ? ((p.pventa-costeUsado)/p.pventa*100) : 0;
     return `<tr><td><strong>${p.nombre}</strong><br><small style="color:var(--text-s)">${p.ref||''}</small></td>
       <td>${p.cultivo||'—'}</td><td>${p.unidad||'—'}</td>
-      <td>${eur(p.pventa)}</td><td>${eur(p.coste)}</td>
-      <td><span class="badge badge-ok">${margen}%</span></td>
+      <td>${eur(p.pventa)}</td>
+      <td>${costeReal!=null?`<strong title="Calculado desde Costes por Cultivo + kg de Lotes">${eur(costeReal)}</strong> <span style="font-size:10px;color:var(--text-s)">real</span>`:`${eur(p.coste)} <span style="font-size:10px;color:var(--text-s)" title="Sin datos de coste real del cultivo (registra kg en Lotes y gastos en Costes por Cultivo)">manual</span>`}</td>
+      <td><span class="badge ${margen>=0?'badge-ok':'badge-red'}">${margen.toFixed(1)}%</span></td>
       <td>${p.iva||10}%</td>
       <td style="display:flex;gap:4px">
         <button class="btn btn-sm btn-icon" onclick="formProducto(${p.id})">✏️</button>
@@ -4797,6 +5060,7 @@ async function exportLibroIVA(){
   const mesIni = (trimestre-1)*3+1, mesFin = trimestre*3;
   const desde = `${anio}-${String(mesIni).padStart(2,'0')}-01`;
   const hasta = `${anio}-${String(mesFin).padStart(2,'0')}-31`;
+  try{
 
   // Las rectificativas SÍ se incluyen (con importes en negativo) — se declaran en el
   // trimestre en que se EMITEN, no corrigen retroactivamente el trimestre original.
@@ -4841,6 +5105,7 @@ async function exportLibroIVA(){
 
   await descargarWorkbook(wb, `libro_iva_${trimestre}T_${anio}.xlsx`);
   toast(`✅ Libro de IVA ${trimestre}T ${anio} generado (incluye rectificativas si las hay)`);
+  }catch(e){ console.error(e); toast('Error al generar el Excel: '+e.message,'err'); }
 }
 
 function renderReportes(){
@@ -5162,17 +5427,20 @@ function generarGraficoImagen({type, labels, datasets, titulo, subtitulo, w=900,
   });
 }
 
-function agregarPorCanal(facts){
+function agregarPorCanal(facts, desdeTienda, hastaTienda){
   const porCanal = {};
   Object.keys(CANALES).forEach(k=>porCanal[k]=0);
   facts.filter(f=>f.tipo==='C').forEach(f=>{
     const canal = canalDeCliente(f.cliId);
     porCanal[canal] = (porCanal[canal]||0) + (parseFloat(f.total)||0);
   });
+  if(desdeTienda!==undefined){
+    porCanal['tienda'] = (porCanal['tienda']||0) + ingresosTiendaEnRango(desdeTienda, hastaTienda);
+  }
   return porCanal;
 }
 
-function agregarProductosVendidos(facts, limite=null){
+function agregarProductosVendidos(facts, limite=null, ventasTienda=[]){
   const porProducto = {};
   facts.filter(f=>f.tipo==='C').forEach(f=>{
     (f.lineas||[]).forEach(l=>{
@@ -5180,6 +5448,15 @@ function agregarProductosVendidos(facts, limite=null){
       if(!porProducto[key]) porProducto[key] = {desc:key, uds:0, importe:0};
       porProducto[key].uds += parseFloat(l.uds)||0;
       porProducto[key].importe += parseFloat(l.imp)||0;
+    });
+  });
+  ventasTienda.forEach(v=>{
+    (v.lineas||[]).forEach(l=>{
+      const key = (l.nombre||l.desc||'Sin descripción').trim();
+      if(!porProducto[key]) porProducto[key] = {desc:key, uds:0, importe:0};
+      const cant = parseFloat(l.cantidad ?? l.uds)||0;
+      porProducto[key].uds += cant;
+      porProducto[key].importe += cant*(parseFloat(l.precio)||0);
     });
   });
   const arr = Object.values(porProducto).sort((a,b)=>b.importe-a.importe);
@@ -5232,7 +5509,7 @@ async function genReportePDF(){
     // ── Ventas por canal (últimos 12 meses) ──
     const hace12 = new Date(); hace12.setMonth(hace12.getMonth()-11);
     const factsRango = facts.filter(f=>f.tipo==='C' && f.fecha >= hace12.toISOString().slice(0,10));
-    const porCanal = agregarPorCanal(factsRango);
+    const porCanal = agregarPorCanal(factsRango, hace12.toISOString().slice(0,10), today());
     const canalLabels = Object.keys(CANALES).map(k=>CANALES[k]);
     const canalData = Object.keys(CANALES).map(k=>+((porCanal[k]||0).toFixed(2)));
 
@@ -5251,11 +5528,20 @@ async function genReportePDF(){
     const dias = diasDelMes(mesActual);
     const ventasFacturaPorDia = {};
     factsMes.filter(f=>f.tipo==='C').forEach(f=>{ ventasFacturaPorDia[f.fecha]=(ventasFacturaPorDia[f.fecha]||0)+(parseFloat(f.total)||0); });
-    const tksPorDia = {}; tksMes.forEach(t=>tksPorDia[t.fecha]=t);
+    const tksPorDia = {};
+    tksMes.forEach(t=>{
+      if(!tksPorDia[t.fecha]) tksPorDia[t.fecha] = {ticket:0, datafono:0};
+      tksPorDia[t.fecha].ticket += parseFloat(t.ticket)||0;
+      tksPorDia[t.fecha].datafono += parseFloat(t.datafono)||0;
+    });
+    const ventasTiendaMesPDF = dbGet('ventas_tienda').filter(v=>(v.fecha||'').slice(0,7)===mesActual);
+    const ventasTiendaPorDiaPDF = {};
+    ventasTiendaMesPDF.forEach(v=>{ ventasTiendaPorDiaPDF[v.fecha] = (ventasTiendaPorDiaPDF[v.fecha]||0) + (parseFloat(v.total)||0); });
     const diaLabels = dias.map(d=>d.slice(8,10));
     const diaData = dias.map(d=>{
       const t=tksPorDia[d];
-      return +(((ventasFacturaPorDia[d]||0) + (t?(parseFloat(t.ticket)||0)+(parseFloat(t.datafono)||0):0)).toFixed(2));
+      const tienda = (t?t.ticket+t.datafono:0) + (ventasTiendaPorDiaPDF[d]||0);
+      return +(((ventasFacturaPorDia[d]||0) + tienda).toFixed(2));
     });
     if(diaData.some(v=>v>0)){
       const imgDias = await generarGraficoImagen({
