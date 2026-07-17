@@ -14,8 +14,8 @@
 <title>Rural Ecolab SL — Gestión Agrícola</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -286,7 +286,7 @@ tr:hover td{background:#FAFCFA}
     <div class="sb-item" data-s="nueva-factura" onclick="go('nueva-factura')"><span class="icon">➕</span> Nueva Factura</div>
     <div class="sb-item" data-s="facturas-prov" onclick="go('facturas-prov')"><span class="icon">📤</span> F. Proveedores</div>
     <div class="sb-item" data-s="facturas-cli" onclick="go('facturas-cli')"><span class="icon">📥</span> F. Clientes</div>
-    <div class="sb-item" data-s="albaranes-pendientes" onclick="go('albaranes-pendientes')"><span class="icon">📑</span> Albaranes pendientes</div>
+    <div class="sb-item" data-s="albaranes-pendientes" onclick="go('albaranes-pendientes')"><span class="icon">📑</span> Subir Albaranes</div>
     <div class="sb-item" data-s="tickets" onclick="go('tickets')"><span class="icon">🎫</span> Ticket Tienda</div>
     <div class="sb-item" data-s="tienda" onclick="go('tienda')"><span class="icon">🏪</span> Tienda (venta)</div>
     <div class="sb-section">Control</div>
@@ -446,6 +446,7 @@ tr:hover td{background:#FAFCFA}
               <div class="form-group"><label>Nº Albarán</label><input class="input" id="nf-albaran" placeholder="ALB-2026-001"></div>
               <div class="form-group"><label>Nº Pedido</label><input class="input" id="nf-pedido" placeholder="PED-2026-001"></div>
               <div class="form-group"><label>Forma de pago</label><select class="select" id="nf-forma-pago"><option value="Transferencia Bancaria">Transferencia Bancaria</option><option value="Cargo banco">Cargo banco</option></select></div>
+              <div class="form-group"><label>IBAN / Cuenta bancaria (opcional)</label><input class="input" id="nf-iban-factura" placeholder="Por defecto, el de Configuración"></div>
               <div class="form-group full"><label>Observaciones</label><textarea class="input" id="nf-notas" rows="2"></textarea></div>
             </div>
           </div>
@@ -548,12 +549,12 @@ tr:hover td{background:#FAFCFA}
   <!-- ══════════════ ALBARANES PENDIENTES ══════════════ -->
   <section id="s-albaranes-pendientes" class="screen">
     <div class="page-header">
-      <div class="page-title">Albaranes pendientes de facturar</div>
+      <div class="page-title">Subir Albaranes</div>
       <div class="page-actions">
-        <button class="btn btn-primary" onclick="abrirGenerarFacturasDelMes()">🧾 Generar facturas del mes</button>
+        <button class="btn btn-primary" onclick="go('facturas-cli')">📥 Ver Facturas Clientes</button>
       </div>
     </div>
-    <p style="color:var(--text-s);font-size:13px;margin-bottom:16px">Sube aquí cada albarán en cuanto te llegue, del cliente que sea. Se van guardando sueltos. Cuando tengas todos los del mes, pulsa "Generar facturas del mes" y se agrupan automáticamente por cliente, ya listas para numerar.</p>
+    <p style="color:var(--text-s);font-size:13px;margin-bottom:16px">Sube aquí cada albarán en cuanto te llegue. Se añade automáticamente a la factura provisional (sin numerar) de ese cliente para el mes que corresponda — si es el primer albarán del mes se crea sola, si ya había una se le añade la línea. A final de mes, ve a Facturas Clientes → "Numerar facturas del mes".</p>
 
     <div class="card" style="margin-bottom:20px">
       <div id="ap-drop" class="ocr-drop-zone" style="padding:20px"
@@ -577,11 +578,11 @@ tr:hover td{background:#FAFCFA}
     <div id="ap-revision-block" style="display:none" class="card" style="margin-bottom:20px">
       <h3 style="margin-top:0">Revisa antes de guardar</h3>
       <div id="ap-revision-lista"></div>
-      <button class="btn btn-primary" style="margin-top:10px" onclick="guardarTodosAlbaranesPendientes()">💾 Guardar todos</button>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="guardarTodosAlbaranesPendientes()">💾 Añadir todos a sus facturas</button>
     </div>
 
     <div class="card">
-      <h3 style="margin-top:0">Pendientes por cliente</h3>
+      <h3 style="margin-top:0">Últimos albaranes añadidos</h3>
       <div id="ap-por-cliente"></div>
     </div>
   </section>
@@ -1305,7 +1306,7 @@ function doLogout(){
 const TITLES={
   'dashboard':'📊 Dashboard','nueva-factura':'➕ Nueva Factura',
   'facturas-prov':'📤 Facturas Proveedores','facturas-cli':'📥 Facturas Clientes',
-  'albaranes-pendientes':'📑 Albaranes pendientes',
+  'albaranes-pendientes':'📑 Subir Albaranes',
   'tickets':'🎫 Ticket Tienda',
   'tienda':'🏪 Tienda (venta)',
   'gastos':'💸 Gastos','costes-cultivo':'🌱 Costes por Cultivo',
@@ -1619,7 +1620,8 @@ function dibujarFacturaPDF(doc, f, y0){
   doc.setFont('courier','normal');
   doc.text(f.formaPago || 'Transferencia Bancaria', margin, y);
   y += 4.4;
-  if(c.iban){ doc.text(c.iban, margin, y); y += 4.4; }
+  const ibanMostrar = f.iban || c.iban;
+  if(ibanMostrar){ doc.text(ibanMostrar, margin, y); y += 4.4; }
 
   if(f.notas){ y+=3; doc.setFontSize(8); doc.text('Notas: '+f.notas, margin, y); y+=4; }
   doc.setTextColor(0);
@@ -1834,6 +1836,7 @@ function renderDashboard(){
     else ingM[m]+=f.total;
   });
   if(chMain) chMain.destroy();
+  try{
   chMain=new Chart(document.getElementById('ch-main'),{type:'bar',data:{labels:meses,datasets:[
     {label:'Gastos',data:gasM,backgroundColor:'rgba(229,57,53,.7)'},
     {label:'Ingresos',data:ingM,backgroundColor:'rgba(46,125,50,.7)'}
@@ -1843,6 +1846,7 @@ function renderDashboard(){
   facts.filter(f=>f.tipo==='P').forEach(f=>{ const c=f.cultivo||'Sin cultivo'; cultMap[c]=(cultMap[c]||0)+f.total; });
   if(chCultivo) chCultivo.destroy();
   chCultivo=new Chart(document.getElementById('ch-cultivo'),{type:'doughnut',data:{labels:Object.keys(cultMap),datasets:[{data:Object.values(cultMap),backgroundColor:['#4CAF50','#FF9800','#2196F3','#9C27B0','#F44336','#00BCD4']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+  }catch(eChart){ console.warn('Error al dibujar gráficos del Dashboard:', eChart.message); }
 }
 
 // ════════════════════════════════════════════════════
@@ -1862,6 +1866,8 @@ function initNF(){
   cs.innerHTML='<option value="">— Seleccionar —</option>'+clis.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
   const cvSel=document.getElementById('nf-cultivo');
   if(cvSel) cvSel.innerHTML = opcionesCultivo('', true);
+  const ibanEl=document.getElementById('nf-iban-factura');
+  if(ibanEl){ const cfg=dbGet('config',{}); ibanEl.placeholder = cfg.iban ? `Por defecto: ${cfg.iban}` : 'Por defecto, el de Configuración'; }
   // api key hardcoded
 }
 
@@ -1873,6 +1879,8 @@ function resetNF(){
   document.getElementById('nf-albaran').value='';
   document.getElementById('nf-pedido').value='';
   document.getElementById('nf-forma-pago').value='Transferencia Bancaria';
+  const ibanEl = document.getElementById('nf-iban-factura');
+  if(ibanEl) ibanEl.value='';
   document.getElementById('nf-notas').value='';
   document.getElementById('nf-tipo').value='P';
   document.getElementById('nf-iva').value='21';
@@ -2113,6 +2121,7 @@ async function guardarFactura(){
     albaran:document.getElementById('nf-albaran').value,
     pedido:document.getElementById('nf-pedido').value,
     formaPago:document.getElementById('nf-forma-pago').value,
+    iban:document.getElementById('nf-iban-factura').value.trim(),
     notas:document.getElementById('nf-notas').value,
     base,iva:ivaPct,ivaImp,re:rePct,reImp,
     total:base+ivaImp+reImp,
@@ -2150,6 +2159,7 @@ function editFactura(id){
     document.getElementById('nf-albaran').value=f.albaran||'';
     document.getElementById('nf-pedido').value=f.pedido||'';
     document.getElementById('nf-forma-pago').value=f.formaPago||'Transferencia Bancaria';
+    document.getElementById('nf-iban-factura').value=f.iban||'';
     document.getElementById('nf-notas').value=f.notas||'';
     document.getElementById('nf-iva').value=String(f.iva||21);
     document.getElementById('nf-recargo').value=String(f.re||0);
@@ -2690,11 +2700,13 @@ function renderGastos(){
   const catMap={};
   filtered.forEach(f=>{ const c=f.cat||'Otros'; catMap[c]=(catMap[c]||0)+f.total; });
   if(chGcat) chGcat.destroy();
-  chGcat=new Chart(document.getElementById('ch-gcat'),{type:'pie',data:{labels:Object.keys(catMap),datasets:[{data:Object.values(catMap),backgroundColor:['#4CAF50','#FF9800','#2196F3','#9C27B0','#F44336','#00BCD4','#FF5722','#607D8B','#795548']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
   const mesM=Array(12).fill(0);
   filtered.forEach(f=>{ mesM[parseInt(f.fecha.split('-')[1])-1]+=f.total; });
   if(chGmes) chGmes.destroy();
-  chGmes=new Chart(document.getElementById('ch-gmes'),{type:'bar',data:{labels:['E','F','M','A','My','J','Jl','Ag','S','O','N','D'],datasets:[{label:'Gastos',data:mesM,backgroundColor:'rgba(229,57,53,.7)'}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+  try{
+    chGcat=new Chart(document.getElementById('ch-gcat'),{type:'pie',data:{labels:Object.keys(catMap),datasets:[{data:Object.values(catMap),backgroundColor:['#4CAF50','#FF9800','#2196F3','#9C27B0','#F44336','#00BCD4','#FF5722','#607D8B','#795548']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+    chGmes=new Chart(document.getElementById('ch-gmes'),{type:'bar',data:{labels:['E','F','M','A','My','J','Jl','Ag','S','O','N','D'],datasets:[{label:'Gastos',data:mesM,backgroundColor:'rgba(229,57,53,.7)'}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+  }catch(eChart){ console.warn('Error al dibujar gráficos de Gastos:', eChart.message); }
 }
 
 // ════════════════════════════════════════════════════
@@ -2775,7 +2787,9 @@ function renderCultivosCostes(){
   const gas=resultados.map(r=>r.gas);
   const ing=resultados.map(r=>r.ing);
   if(chCultivoComp) chCultivoComp.destroy();
+  try{
   chCultivoComp=new Chart(document.getElementById('ch-cultivos'),{type:'bar',data:{labels:cultivos,datasets:[{label:'Gastos',data:gas,backgroundColor:'rgba(229,57,53,.7)'},{label:'Ingresos',data:ing,backgroundColor:'rgba(46,125,50,.7)'}]},options:{responsive:true,plugins:{legend:{position:'top'}}}});
+  }catch(eChart){ console.warn('Error al dibujar gráfico de cultivos:', eChart.message); }
 }
 
 // ════════════════════════════════════════════════════
@@ -3188,9 +3202,11 @@ function renderRentabilidad(){
       <td><span class="badge ${m>=0?'badge-ok':'badge-red'}">${p}%</span></td></tr>`;
   }).join('');
   if(chMargen) chMargen.destroy();
-  chMargen=new Chart(document.getElementById('ch-margen'),{type:'bar',data:{labels:cultivos,datasets:[{label:'Margen',data:cultivos.map((c,i)=>cIng[i]-cGas[i]),backgroundColor:cultivos.map((c,i)=>cIng[i]-cGas[i]>=0?'rgba(46,125,50,.7)':'rgba(229,57,53,.7)')}]},options:{responsive:true,plugins:{legend:{display:false}}}});
   if(chIngGas) chIngGas.destroy();
-  chIngGas=new Chart(document.getElementById('ch-ing-gas'),{type:'bar',data:{labels:cultivos,datasets:[{label:'Ingresos',data:cIng,backgroundColor:'rgba(46,125,50,.7)'},{label:'Gastos',data:cGas,backgroundColor:'rgba(229,57,53,.7)'}]},options:{responsive:true,plugins:{legend:{position:'top'}}}});
+  try{
+    chMargen=new Chart(document.getElementById('ch-margen'),{type:'bar',data:{labels:cultivos,datasets:[{label:'Margen',data:cultivos.map((c,i)=>cIng[i]-cGas[i]),backgroundColor:cultivos.map((c,i)=>cIng[i]-cGas[i]>=0?'rgba(46,125,50,.7)':'rgba(229,57,53,.7)')}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+    chIngGas=new Chart(document.getElementById('ch-ing-gas'),{type:'bar',data:{labels:cultivos,datasets:[{label:'Ingresos',data:cIng,backgroundColor:'rgba(46,125,50,.7)'},{label:'Gastos',data:cGas,backgroundColor:'rgba(229,57,53,.7)'}]},options:{responsive:true,plugins:{legend:{position:'top'}}}});
+  }catch(eChart){ console.warn('Error al dibujar gráficos de margen/ingresos-gastos:', eChart.message); }
 
   // ── Rentabilidad por cliente ──
   const clientes = dbGet('clientes');
@@ -3212,7 +3228,8 @@ function renderRentabilidad(){
   if(chRentCliente) chRentCliente.destroy();
   const top10Cli = filasCliente.slice(0,10);
   if(top10Cli.length){
-    chRentCliente = new Chart(document.getElementById('ch-rent-cliente'), {type:'bar', data:{labels:top10Cli.map(f=>f.nombre), datasets:[{label:'Total facturado', data:top10Cli.map(f=>f.total), backgroundColor:'rgba(46,125,50,.7)'}]}, options:{responsive:true, indexAxis:'y', plugins:{legend:{display:false}}}});
+    try{ chRentCliente = new Chart(document.getElementById('ch-rent-cliente'), {type:'bar', data:{labels:top10Cli.map(f=>f.nombre), datasets:[{label:'Total facturado', data:top10Cli.map(f=>f.total), backgroundColor:'rgba(46,125,50,.7)'}]}, options:{responsive:true, indexAxis:'y', plugins:{legend:{display:false}}}}); }
+    catch(eChart){ console.warn('Error al dibujar gráfico de clientes:', eChart.message); }
   }
 
   // ── Rentabilidad por producto — usa el coste real €/kg del cultivo (Costes + Lotes)
@@ -3280,7 +3297,8 @@ function renderRentabilidad(){
   if(chRentProducto) chRentProducto.destroy();
   const top10Prod = filasProducto.slice(0,10);
   if(top10Prod.length){
-    chRentProducto = new Chart(document.getElementById('ch-rent-producto'), {type:'bar', data:{labels:top10Prod.map(f=>f.producto), datasets:[{label:'Margen (€)', data:top10Prod.map(f=>+f.margen.toFixed(2)), backgroundColor:top10Prod.map(f=>f.margen>=0?'rgba(46,125,50,.7)':'rgba(229,57,53,.7)')}]}, options:{responsive:true, indexAxis:'y', plugins:{legend:{display:false}}}});
+    try{ chRentProducto = new Chart(document.getElementById('ch-rent-producto'), {type:'bar', data:{labels:top10Prod.map(f=>f.producto), datasets:[{label:'Margen (€)', data:top10Prod.map(f=>+f.margen.toFixed(2)), backgroundColor:top10Prod.map(f=>f.margen>=0?'rgba(46,125,50,.7)':'rgba(229,57,53,.7)')}]}, options:{responsive:true, indexAxis:'y', plugins:{legend:{display:false}}}}); }
+    catch(eChart){ console.warn('Error al dibujar gráfico de productos:', eChart.message); }
   }
 }
 
@@ -3732,6 +3750,7 @@ async function procesarAlbaranesPendientesSubida(fileList){
         archivo: file.name,
         fecha: d.fecha || today(),
         numAlbaran: d.albaran || '',
+        pedido: d.pedido || '',
         lineas: (d.lineas||[]).map(l=>({desc:l.desc||'', uds:parseFloat(l.uds)||1, precio:parseFloat(l.precio)||0, imp:parseFloat(l.imp)||(parseFloat(l.uds)||1)*(parseFloat(l.precio)||0)})),
         cliId: (buscarEntidadPorNombreONif(dbGet('clientes'), d.cliente_nombre, d.cliente_nif) || {}).id
           ?? detectarClienteEnTexto(d.cliente_nombre || d._textoCrudo || '')
@@ -3769,6 +3788,7 @@ function renderRevisionAlbaranesPendientes(){
         </div>
         <div class="form-group" style="margin:0"><label>Fecha</label><input class="input" type="date" value="${r.fecha}" onchange="revisionAlbaranesPendientes[${idx}].fecha=this.value"></div>
         <div class="form-group" style="margin:0"><label>Nº Albarán</label><input class="input" style="width:120px" value="${r.numAlbaran}" onchange="revisionAlbaranesPendientes[${idx}].numAlbaran=this.value"></div>
+        <div class="form-group" style="margin:0"><label>Nº Pedido</label><input class="input" style="width:120px" value="${r.pedido||''}" onchange="revisionAlbaranesPendientes[${idx}].pedido=this.value"></div>
         <button class="btn btn-secondary btn-sm" onclick="guardarAlbaranPendienteIndividual(${idx})">💾 Guardar este</button>
         <button class="btn btn-sm btn-icon" onclick="revisionAlbaranesPendientes.splice(${idx},1);renderRevisionAlbaranesPendientes()">🗑</button>
       </div>
@@ -3784,17 +3804,19 @@ function renderRevisionAlbaranesPendientes(){
 async function guardarAlbaranPendienteIndividual(idx){
   const r = revisionAlbaranesPendientes[idx];
   if(!r.cliId){ toast('Elige el cliente de este albarán','err'); return; }
-  const lineas = r.lineas.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0)}));
+  const lineas = r.lineas.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0), productoId:l.productoId||null, lote:l.lote||''}));
   if(!lineas.length){ toast('Añade al menos una línea con descripción','err'); return; }
-  const registros = dbGet('albaranes_pendientes');
-  const data = { id: nextId(registros), fecha:r.fecha, numAlbaran:r.numAlbaran, cliId:r.cliId, lineas, facturado:false, facturaId:null, archivo:r.archivo };
   try{
-    const saved = await sbInsert('albaranes_pendientes', data);
-    CACHE.albaranes_pendientes = [...(CACHE.albaranes_pendientes||[]), saved];
+    const factura = await agregarAlbaranAFacturaProvisional({cliId:r.cliId, fecha:r.fecha, numAlbaran:r.numAlbaran, pedido:r.pedido, lineasAlbaran:lineas});
+    // Registro de auditoría: queda constancia de qué albarán se metió en qué factura
+    const registros = dbGet('albaranes_pendientes');
+    const log = { id: nextId(registros), fecha:r.fecha, numAlbaran:r.numAlbaran, pedido:r.pedido||'', cliId:r.cliId, lineas, facturado:true, facturaId:factura.id, archivo:r.archivo };
+    try{ const saved = await sbInsert('albaranes_pendientes', log); CACHE.albaranes_pendientes = [...registros, saved]; }catch(eLog){ console.warn('No se pudo registrar el log del albarán:', eLog.message); }
+
     revisionAlbaranesPendientes.splice(idx,1);
     renderRevisionAlbaranesPendientes();
     renderAlbaranesPendientes();
-    toast('✅ Albarán guardado');
+    toast(`✅ Añadido a la factura ${factura.num||'provisional'} de ${getCliName(r.cliId)}`);
   }catch(e){ toast('Error al guardar: '+e.message,'err'); }
 }
 
@@ -3806,39 +3828,27 @@ async function guardarTodosAlbaranesPendientes(){
 }
 
 function renderAlbaranesPendientes(){
-  const pendientes = dbGet('albaranes_pendientes').filter(a=>!a.facturado);
-  const porCliente = {};
-  pendientes.forEach(a=>{
-    if(!porCliente[a.cliId]) porCliente[a.cliId] = [];
-    porCliente[a.cliId].push(a);
-  });
+  const recientes = dbGet('albaranes_pendientes').slice().sort((a,b)=>(b.id||0)-(a.id||0)).slice(0,30);
   const cont = document.getElementById('ap-por-cliente');
-  const ids = Object.keys(porCliente);
-  cont.innerHTML = ids.length ? ids.map(cliId=>{
-    const albs = porCliente[cliId].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-    const total = albs.reduce((s,a)=>s+(a.lineas||[]).reduce((s2,l)=>s2+(parseFloat(l.imp)||0),0),0);
-    const filas = albs.map(a=>`
-      <tr><td>${fmtDate(a.fecha)}</td><td>${a.numAlbaran||'—'}</td><td>${(a.lineas||[]).length} línea(s)</td>
-      <td>${eur((a.lineas||[]).reduce((s,l)=>s+(parseFloat(l.imp)||0),0))}</td>
-      <td><button class="btn btn-sm btn-icon" onclick="eliminarAlbaranPendiente(${a.id})">🗑</button></td></tr>`).join('');
-    return `<div style="margin-bottom:18px">
-      <h4 style="margin:0 0 8px">${getCliName(parseInt(cliId))} <span class="badge badge-blue">${albs.length} albarán(es) — ${eur(total)}</span></h4>
-      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Nº Albarán</th><th>Líneas</th><th>Importe</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>
-    </div>`;
-  }).join('') : '<p style="color:var(--text-s)">No hay albaranes pendientes de facturar.</p>';
-}
-
-async function eliminarAlbaranPendiente(id){
-  if(!confirm('¿Eliminar este albarán de la lista de pendientes?')) return;
-  try{ await sbDelete('albaranes_pendientes', id); CACHE.albaranes_pendientes = dbGet('albaranes_pendientes').filter(a=>a.id!==id); renderAlbaranesPendientes(); toast('Eliminado','info'); }
-  catch(e){ toast('Error: '+e.message,'err'); }
+  cont.innerHTML = recientes.length ? `
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Nº Albarán</th><th>Líneas</th><th>Importe</th><th>Factura</th></tr></thead><tbody>
+    ${recientes.map(a=>{
+      const factura = a.facturaId ? dbGet('facturas').find(f=>f.id===a.facturaId) : null;
+      const importe = (a.lineas||[]).reduce((s,l)=>s+(parseFloat(l.imp)||0),0);
+      return `<tr><td>${fmtDate(a.fecha)}</td><td>${getCliName(a.cliId)}</td><td>${a.numAlbaran||'—'}</td>
+        <td>${(a.lineas||[]).length} línea(s)</td><td>${eur(importe)}</td>
+        <td>${factura ? (factura.num?`<span class="badge badge-ok">${factura.num}</span>`:'<span class="badge badge-grey">⏳ sin numerar</span>') : '—'}</td></tr>`;
+    }).join('')}
+    </tbody></table></div>
+    <p style="font-size:12px;color:var(--text-s);margin-top:10px">Esto es solo un registro de lo que has subido — para editar o borrar líneas, ve a la factura del cliente en Facturas Clientes.</p>
+  ` : '<p style="color:var(--text-s)">Todavía no has subido ningún albarán.</p>';
 }
 
 // ── Albarán manual (sin foto/OCR) ──
 let lineasAlbaranManual = [];
 
 function abrirAlbaranManual(){
-  lineasAlbaranManual = [{desc:'', uds:1, precio:0}];
+  lineasAlbaranManual = [{desc:'', uds:1, precio:0, productoId:null, lote:''}];
   const clientes = dbGet('clientes');
   openModal('Nuevo albarán manual', `
     <div class="form-grid">
@@ -3848,9 +3858,10 @@ function abrirAlbaranManual(){
       </select></div>
       <div class="form-group"><label>Fecha</label><input class="input" type="date" id="am-fecha" value="${today()}"></div>
       <div class="form-group"><label>Nº Albarán</label><input class="input" id="am-num" placeholder="ALB-102"></div>
+      <div class="form-group"><label>Nº Pedido</label><input class="input" id="am-pedido" placeholder="PED-45"></div>
     </div>
     <div style="margin-top:14px">
-      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th></th></tr></thead>
+      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Lote</th><th></th></tr></thead>
       <tbody id="am-lineas-tbody"></tbody></table></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="anadirLineaAlbaranManual()">+ Añadir línea</button>
     </div>
@@ -3860,11 +3871,27 @@ function abrirAlbaranManual(){
 }
 
 function anadirLineaAlbaranManual(){
-  lineasAlbaranManual.push({desc:'', uds:1, precio:0});
+  lineasAlbaranManual.push({desc:'', uds:1, precio:0, productoId:null, lote:''});
   renderLineasAlbaranManual();
 }
 function actualizarLineaAlbaranManual(idx, campo, valor){
   lineasAlbaranManual[idx][campo] = (campo==='uds'||campo==='precio') ? (parseFloat(valor)||0) : valor;
+  renderLineasAlbaranManual();
+}
+function cambioProductoLineaAlbaranManual(idx, valor){
+  if(valor==='__otro__'){
+    lineasAlbaranManual[idx].productoId = null;
+  } else if(valor){
+    const p = dbGet('productos').find(x=>x.id===parseInt(valor));
+    if(p){
+      lineasAlbaranManual[idx].productoId = p.id;
+      lineasAlbaranManual[idx].desc = p.nombre;
+      lineasAlbaranManual[idx].precio = p.pventa||0;
+    }
+  } else {
+    lineasAlbaranManual[idx].productoId = null;
+    lineasAlbaranManual[idx].desc = '';
+  }
   renderLineasAlbaranManual();
 }
 function eliminarLineaAlbaranManual(idx){
@@ -3874,93 +3901,95 @@ function eliminarLineaAlbaranManual(idx){
 function renderLineasAlbaranManual(){
   const tbody = document.getElementById('am-lineas-tbody');
   if(!tbody) return;
-  tbody.innerHTML = lineasAlbaranManual.map((l,idx)=>`
+  const catalogo = dbGet('productos');
+  const lotes = dbGet('lotes');
+  tbody.innerHTML = lineasAlbaranManual.map((l,idx)=>{
+    const lotesCultivo = l.productoId ? lotes.filter(lo=>{ const p=catalogo.find(x=>x.id===l.productoId); return !p || lo.cultivo===p.cultivo; }) : lotes;
+    return `
     <tr>
-      <td><input class="input" value="${l.desc}" onchange="actualizarLineaAlbaranManual(${idx},'desc',this.value)" placeholder="Ej: Tomate Eco Asturias"></td>
+      <td>
+        <select class="select" style="margin-bottom:4px" onchange="cambioProductoLineaAlbaranManual(${idx},this.value)">
+          <option value="">— Catálogo —</option>
+          ${catalogo.map(p=>`<option value="${p.id}" ${l.productoId===p.id?'selected':''}>${iconoCultivo(p.cultivo)} ${p.nombre}</option>`).join('')}
+          <option value="__otro__" ${!l.productoId&&l.desc?'selected':''}>✏️ Otro</option>
+        </select>
+        ${!l.productoId ? `<input class="input" value="${l.desc}" onchange="actualizarLineaAlbaranManual(${idx},'desc',this.value)" placeholder="Nombre del producto">` : ''}
+      </td>
       <td><input class="input" type="number" step="0.01" style="width:80px" value="${l.uds}" onchange="actualizarLineaAlbaranManual(${idx},'uds',this.value)"></td>
       <td><input class="input" type="number" step="0.01" style="width:90px" value="${l.precio}" onchange="actualizarLineaAlbaranManual(${idx},'precio',this.value)"></td>
       <td>${eur(l.uds*l.precio)}</td>
+      <td><select class="select" style="width:110px" onchange="actualizarLineaAlbaranManual(${idx},'lote',this.value)">
+        <option value="">Sin lote</option>
+        ${lotesCultivo.map(lo=>`<option value="${lo.codigo}" ${l.lote===lo.codigo?'selected':''}>${lo.codigo}</option>`).join('')}
+      </select></td>
       <td><button class="btn btn-sm btn-icon" onclick="eliminarLineaAlbaranManual(${idx})">🗑</button></td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function guardarAlbaranManual(){
   const cliId = parseInt(document.getElementById('am-cliente').value)||null;
   const fecha = document.getElementById('am-fecha').value;
   const numAlbaran = document.getElementById('am-num').value.trim();
+  const pedido = document.getElementById('am-pedido').value.trim();
   if(!cliId){ toast('Elige el cliente','err'); return; }
   if(!fecha){ toast('Indica la fecha','err'); return; }
-  const lineas = lineasAlbaranManual.filter(l=>l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds, precio:l.precio, imp:l.uds*l.precio}));
+  const lineas = lineasAlbaranManual.filter(l=>l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds, precio:l.precio, imp:l.uds*l.precio, productoId:l.productoId||null, lote:l.lote||''}));
   if(!lineas.length){ toast('Añade al menos una línea con descripción','err'); return; }
-  const registros = dbGet('albaranes_pendientes');
-  const data = { id: nextId(registros), fecha, numAlbaran, cliId, lineas, facturado:false, facturaId:null, archivo:'(manual)' };
   try{
-    const saved = await sbInsert('albaranes_pendientes', data);
-    CACHE.albaranes_pendientes = [...(CACHE.albaranes_pendientes||[]), saved];
+    const factura = await agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedido, lineasAlbaran:lineas});
+    const registros = dbGet('albaranes_pendientes');
+    const log = { id: nextId(registros), fecha, numAlbaran, pedido, cliId, lineas, facturado:true, facturaId:factura.id, archivo:'(manual)' };
+    try{ const saved = await sbInsert('albaranes_pendientes', log); CACHE.albaranes_pendientes = [...registros, saved]; }catch(eLog){ console.warn('No se pudo registrar el log del albarán:', eLog.message); }
     closeModal();
     renderAlbaranesPendientes();
-    toast('✅ Albarán guardado');
+    toast(`✅ Añadido a la factura ${factura.num||'provisional'} de ${getCliName(cliId)}`);
   }catch(e){ toast('Error al guardar: '+e.message,'err'); }
 }
 
-function abrirGenerarFacturasDelMes(){
-  const pendientes = dbGet('albaranes_pendientes').filter(a=>!a.facturado);
-  if(!pendientes.length){ toast('No hay albaranes pendientes','err'); return; }
-  const porCliente = {};
-  pendientes.forEach(a=>{ (porCliente[a.cliId] = porCliente[a.cliId]||[]).push(a); });
-  const filas = Object.keys(porCliente).map(cliId=>{
-    const albs = porCliente[cliId];
-    const total = albs.reduce((s,a)=>s+(a.lineas||[]).reduce((s2,l)=>s2+(parseFloat(l.imp)||0),0),0);
-    const fechaMax = albs.reduce((max,a)=>a.fecha>max?a.fecha:max, albs[0].fecha);
-    return `<tr><td>${getCliName(parseInt(cliId))}</td><td>${albs.length}</td><td>${fmtDate(fechaMax)}</td><td>${eur(total)}</td></tr>`;
-  }).join('');
-  openModal('Generar facturas del mes', `
-    <p style="color:var(--text-s);font-size:13px">Se creará una factura en borrador (sin numerar) por cada cliente, agrupando todos sus albaranes pendientes. Fecha de cada factura: la del albarán más reciente de ese cliente. Después usa "Numerar facturas del mes" en Facturas Clientes.</p>
-    <div class="form-group"><label>IVA a aplicar (%)</label><input class="input" id="gfm-iva" type="number" value="4" style="width:100px"></div>
-    <div class="table-wrap" style="max-height:280px;overflow:auto;margin-top:10px">
-      <table><thead><tr><th>Cliente</th><th>Albaranes</th><th>Fecha factura</th><th>Base</th></tr></thead><tbody>${filas}</tbody></table>
-    </div>
-  `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="confirmarGenerarFacturasDelMes()">🧾 Generar facturas</button>`);
-}
+// ════════════════════════════════════════════════════
+//  Añade un albarán DIRECTAMENTE a la factura provisional
+//  (sin numerar) del cliente para ese mes — la crea si no
+//  existe, o le añade las líneas si ya la había empezado.
+// ════════════════════════════════════════════════════
+async function agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedido, lineasAlbaran, ivaPct}){
+  const mes = (fecha||today()).slice(0,7);
+  const facts = dbGet('facturas');
+  let factura = facts.find(f=>f.tipo==='C' && !f.num && f.cliId===cliId && (f.fecha||'').slice(0,7)===mes);
 
-async function confirmarGenerarFacturasDelMes(){
-  const ivaPct = parseFloat(document.getElementById('gfm-iva').value)||4;
-  const pendientes = dbGet('albaranes_pendientes').filter(a=>!a.facturado);
-  const porCliente = {};
-  pendientes.forEach(a=>{ (porCliente[a.cliId] = porCliente[a.cliId]||[]).push(a); });
+  const nuevasLineas = lineasAlbaran.map(l=>({
+    id:'l'+Date.now()+Math.random().toString(36).slice(2,5),
+    alb:numAlbaran||'', ped:pedido||'', desc:l.desc, uds:l.uds, precio:l.precio, imp:l.imp,
+    productoId:l.productoId||null, lote:l.lote||''
+  }));
 
-  let ok=0, error=0;
-  for(const cliId of Object.keys(porCliente)){
-    const albs = porCliente[cliId];
-    const lineas = [];
-    albs.forEach(a=>{
-      (a.lineas||[]).forEach(l=>{
-        lineas.push({ id:'l'+Date.now()+Math.random().toString(36).slice(2,5), alb:a.numAlbaran||'', ped:'', desc:l.desc, uds:l.uds, precio:l.precio, imp:l.imp });
-      });
-    });
+  if(factura){
+    const lineas = [...(factura.lineas||[]), ...nuevasLineas];
     const base = lineas.reduce((s,l)=>s+(parseFloat(l.imp)||0),0);
-    const ivaImp = base*ivaPct/100;
-    const fechaMax = albs.reduce((max,a)=>a.fecha>max?a.fecha:max, albs[0].fecha);
-    const facts = dbGet('facturas');
+    const iva = factura.iva ?? (ivaPct ?? 4);
+    const ivaImp = base*iva/100;
+    const albaranesTexto = [factura.albaran, numAlbaran].filter(Boolean).join(', ');
+    const pedidoTexto = [factura.pedido, pedido].filter(Boolean).join(', ');
+    const fechaNueva = fecha > factura.fecha ? fecha : factura.fecha;
+    const cambios = { lineas, base, ivaImp, total: base+ivaImp, albaran: albaranesTexto, pedido: pedidoTexto, fecha: fechaNueva };
+    await sbUpdate('facturas', factura.id, cambios);
+    Object.assign(factura, cambios);
+  } else {
+    const base = nuevasLineas.reduce((s,l)=>s+(parseFloat(l.imp)||0),0);
+    const iva = ivaPct ?? 4;
+    const ivaImp = base*iva/100;
     const data = {
-      id: nextId(facts), num:'', tipo:'C', fecha:fechaMax, cliId:parseInt(cliId),
-      cultivo:'', cat:'', albaran: albs.map(a=>a.numAlbaran).filter(Boolean).join(', '), pedido:'',
-      formaPago:'Transferencia Bancaria', notas:'', base, iva:ivaPct, ivaImp, re:0, reImp:0, total:base+ivaImp,
-      estado:'pendiente', lineas
+      id: nextId(facts), num:'', tipo:'C', fecha, cliId, cultivo:'', cat:'',
+      albaran: numAlbaran||'', pedido: pedido||'', formaPago:'Transferencia Bancaria', notas:'',
+      base, iva, ivaImp, re:0, reImp:0, total:base+ivaImp, estado:'pendiente', lineas: nuevasLineas
     };
-    try{
-      const saved = await sbInsert('facturas', data);
-      CACHE.facturas = [...(CACHE.facturas||[]), saved];
-      await descontarStockPorVenta(lineas);
-      for(const a of albs){ await sbUpdate('albaranes_pendientes', a.id, {facturado:true, facturaId:saved.id}); a.facturado=true; a.facturaId=saved.id; }
-      ok++;
-    }catch(e){ console.warn('Error generando factura para cliente', cliId, e.message); error++; }
+    const saved = await sbInsert('facturas', data);
+    CACHE.facturas = [...(CACHE.facturas||[]), saved];
+    factura = saved;
   }
-  closeModal();
-  renderAlbaranesPendientes();
-  toast(`✅ ${ok} factura(s) borrador generada(s)` + (error?`, ${error} con error`:'') + ' — ve a Facturas Clientes para numerarlas');
+  await descontarStockPorVenta(nuevasLineas);
+  return factura;
 }
 
 function renderTickets(){
@@ -5148,14 +5177,16 @@ function renderReportes(){
     return facts.filter(f=>f.tipo==='P'&&(f.fecha||'')>=desde&&(f.fecha||'')<=hasta).reduce((s,f)=>s+(parseFloat(f.total)||0),0);
   });
   if(chReportesVentas) chReportesVentas.destroy();
-  chReportesVentas = new Chart(document.getElementById('ch-reportes-ventas'), {
-    type:'bar',
-    data:{ labels:labelsMeses, datasets:[
-      {label:'Ventas (facturas + tienda)', data:ventasPorMes, backgroundColor:'rgba(46,125,50,.7)'},
-      {label:'Gastos', data:gastosPorMes, backgroundColor:'rgba(229,57,53,.7)'}
-    ]},
-    options:{ responsive:true, plugins:{legend:{position:'top'}} }
-  });
+  try{
+    chReportesVentas = new Chart(document.getElementById('ch-reportes-ventas'), {
+      type:'bar',
+      data:{ labels:labelsMeses, datasets:[
+        {label:'Ventas (facturas + tienda)', data:ventasPorMes, backgroundColor:'rgba(46,125,50,.7)'},
+        {label:'Gastos', data:gastosPorMes, backgroundColor:'rgba(229,57,53,.7)'}
+      ]},
+      options:{ responsive:true, plugins:{legend:{position:'top'}} }
+    });
+  }catch(eChart){ console.warn('Error al dibujar gráfico de Reportes:', eChart.message); }
 }
 
 // ════════════════════════════════════════════════════
@@ -6286,6 +6317,13 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   if(sbImg) sbImg.src = LOGO_RURALECOLAB_PNG;
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./service-worker.js').catch(e=>console.warn('SW no registrado:', e.message));
+  }
+
+  if(typeof Chart === 'undefined'){
+    const aviso = document.createElement('div');
+    aviso.style.cssText = 'background:#fdecea;border-bottom:2px solid #e57373;color:#8a1f11;text-align:center;padding:10px;font-size:13px;font-weight:600;position:sticky;top:0;z-index:600';
+    aviso.textContent = '⚠ Los gráficos no se han podido cargar (Chart.js bloqueado o sin conexión). El resto de la app funciona igual — revisa si tienes algún bloqueador de anuncios activo en este sitio.';
+    document.body.insertBefore(aviso, document.body.firstChild);
   }
 
   await cargarUsuarios();
