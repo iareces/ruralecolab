@@ -238,8 +238,6 @@ tr:hover td{background:#FAFCFA}
   .topbar-toggle{display:block}
   .dash-charts,.form-grid{grid-template-columns:1fr}
   .kpi-grid{grid-template-columns:1fr 1fr}
-  .linea-row{grid-template-columns:1fr 60px 70px 32px}
-  .linea-row .linea-alb,.linea-row .linea-ped,.linea-row .linea-lote,.linea-row .linea-producto{display:none}
   .form-group.full{grid-column:1}
 }
 </style>
@@ -459,10 +457,14 @@ tr:hover td{background:#FAFCFA}
             <button class="btn btn-sm btn-primary" onclick="addLinea()">+ Añadir línea</button>
           </div>
           <div class="card-body" style="padding:8px 12px">
-            <div style="display:grid;grid-template-columns:80px 80px 1fr 60px 80px 80px 32px;gap:4px;padding:4px 0;font-size:10px;font-weight:700;color:var(--text-s);text-transform:uppercase">
-              <span>Albarán</span><span>Pedido</span><span>Descripción</span><span>Uds</span><span>Precio</span><span>Importe</span><span></span>
+            <div style="overflow-x:auto">
+              <div style="min-width:640px">
+                <div style="display:grid;grid-template-columns:80px 80px 1fr 60px 80px 80px 130px 90px 32px;gap:6px;padding:4px 0;font-size:10px;font-weight:700;color:var(--text-s);text-transform:uppercase">
+                  <span>Albarán</span><span>Pedido</span><span>Descripción</span><span>Uds</span><span>Precio</span><span>Importe</span><span>Producto (cultivo)</span><span>Lote</span><span></span>
+                </div>
+                <div id="lineas-wrap"></div>
+              </div>
             </div>
-            <div id="lineas-wrap"></div>
             <div class="linea-add-btn" onclick="addLinea()">＋ Añadir línea</div>
           </div>
         </div>
@@ -761,7 +763,8 @@ tr:hover td{background:#FAFCFA}
       <div class="card"><div class="card-header"><div class="card-title">💰 Margen por Cultivo</div></div><div class="card-body"><canvas id="ch-margen" height="200"></canvas></div></div>
       <div class="card"><div class="card-header"><div class="card-title">📈 Ingresos vs Gastos</div></div><div class="card-body"><canvas id="ch-ing-gas" height="200"></canvas></div></div>
     </div>
-    <div class="card"><div class="card-header"><div class="card-title">📋 Por Cultivo</div></div>
+    <div class="card"><div class="card-header"><div class="card-title">📋 Por Cultivo — rentabilidad TOTAL (¿me compensa este cultivo en conjunto?)</div></div>
+      <p style="color:var(--text-s);font-size:12px;margin:0 0 10px">Suma de todos los ingresos y gastos de cada cultivo. Para ver el precio y margen de cada venta por separado (Tienda, cada cliente...) sin promediar nada, entra en "Costes por Cultivo → Costes detallados".</p>
       <div class="table-wrap"><table><thead><tr><th>Cultivo</th><th>Ingresos</th><th>Gastos</th><th>Margen €</th><th>Margen %</th></tr></thead><tbody id="rent-tbody"></tbody></table></div>
     </div>
     <div class="card" style="margin-top:20px">
