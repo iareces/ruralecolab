@@ -346,7 +346,7 @@ tr:hover td{background:#FAFCFA}
     </div>
     <div class="dash-charts">
       <div class="card"><div class="card-header"><div class="card-title">📈 Gastos vs Ingresos</div></div><div class="card-body"><canvas id="ch-main" height="140"></canvas></div></div>
-      <div class="card"><div class="card-header"><div class="card-title">🌱 Por Cultivo</div></div><div class="card-body"><canvas id="ch-cultivo" height="140"></canvas></div></div>
+      <div class="card"><div class="card-header"><div class="card-title">🥕 Ingresos por Producto</div></div><div class="card-body"><canvas id="ch-cultivo" height="140"></canvas></div></div>
     </div>
     <div class="card">
       <div class="card-header"><div class="card-title">🕐 Últimas Facturas</div></div>
@@ -687,6 +687,7 @@ tr:hover td{background:#FAFCFA}
         <button class="btn btn-primary" onclick="abrirRepartoCosteCultivos()">➗ Repartir coste entre cultivos</button>
       </div>
     </div>
+    <div id="cultivos-sin-asignar"></div>
     <div id="cultivos-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:24px"></div>
     <div class="card"><div class="card-header"><div class="card-title">📊 Comparativa</div></div><div class="card-body"><canvas id="ch-cultivos" height="120"></canvas></div></div>
   </section>
@@ -1380,7 +1381,10 @@ function getCli(id){ return dbGet('clientes').find(x=>x.id==id)||{}; }
 // ════════════════════════════════════════════════════
 const CANALES = { horeca:'HORECA', fruteria:'Frutería', alimerka:'Alimerka', institucion:'Institución', tienda:'Tienda propia', otros:'Otros' };
 function labelCanal(cat){ return CANALES[cat] || cat || 'Otros'; }
-function canalDeCliente(id){ return dbGet('clientes').find(x=>x.id===id)?.cat || 'otros'; }
+function canalDeCliente(id){
+  const cat = dbGet('clientes').find(x=>x.id===id)?.cat;
+  return (cat && CANALES[cat]) ? cat : 'otros';
+}
 
 function detectarCanalPorNombre(nombre){
   const n=(nombre||'').toUpperCase();
@@ -1841,11 +1845,28 @@ function renderDashboard(){
     {label:'Gastos',data:gasM,backgroundColor:'rgba(229,57,53,.7)'},
     {label:'Ingresos',data:ingM,backgroundColor:'rgba(46,125,50,.7)'}
   ]},options:{responsive:true,plugins:{legend:{position:'top'}}}});
-  // Donut por cultivo
-  const cultMap={};
-  facts.filter(f=>f.tipo==='P').forEach(f=>{ const c=f.cultivo||'Sin cultivo'; cultMap[c]=(cultMap[c]||0)+f.total; });
+  // Donut por PRODUCTO — suma de importes reales, sea cual sea el precio de cada
+  // venta (sumar no tiene el problema que tiene promediar un precio). Se agrupa por
+  // el nombre tal cual se vendió, sin depender de que el catálogo esté bien enlazado.
+  const prodMap={};
+  facts.filter(f=>f.tipo==='C').forEach(f=>(f.lineas||[]).forEach(l=>{
+    const p = (l.desc||'Sin descripción').trim();
+    prodMap[p] = (prodMap[p]||0) + (parseFloat(l.imp)||0);
+  }));
+  dbGet('ventas_tienda').forEach(v=>(v.lineas||[]).forEach(l=>{
+    const p = (l.nombre||l.desc||'Sin descripción').trim();
+    const cant = parseFloat(l.cantidad ?? l.uds)||0;
+    prodMap[p] = (prodMap[p]||0) + cant*(parseFloat(l.precio)||0);
+  }));
+  const prodOrdenados = Object.entries(prodMap).sort((a,b)=>b[1]-a[1]);
+  const topProd = prodOrdenados.slice(0,9);
+  const restoProd = prodOrdenados.slice(9).reduce((s,[,v])=>s+v,0);
+  if(restoProd>0) topProd.push(['Otros productos', restoProd]);
+
   if(chCultivo) chCultivo.destroy();
-  chCultivo=new Chart(document.getElementById('ch-cultivo'),{type:'doughnut',data:{labels:Object.keys(cultMap),datasets:[{data:Object.values(cultMap),backgroundColor:['#4CAF50','#FF9800','#2196F3','#9C27B0','#F44336','#00BCD4']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+  const coloresCultivo = ['#4CAF50','#FF9800','#2196F3','#9C27B0','#F44336','#00BCD4','#8BC34A','#795548','#607D8B','#FFC107'];
+  const labelsProd = topProd.map(p=>p[0]);
+  chCultivo=new Chart(document.getElementById('ch-cultivo'),{type:'doughnut',data:{labels:labelsProd,datasets:[{data:topProd.map(p=>p[1]),backgroundColor:labelsProd.map((l,i)=>l==='Otros productos'?'#BDBDBD':coloresCultivo[i%coloresCultivo.length])}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
   }catch(eChart){ console.warn('Error al dibujar gráficos del Dashboard:', eChart.message); }
 }
 
@@ -2726,6 +2747,9 @@ function calcularRentabilidadCultivo(cultivo){
   // Ingresos: se calculan por PRODUCTO vendido (enlace real al catálogo, o coincidencia
   // de nombre como respaldo) — NO por el campo "Cultivo" de cabecera de la factura, que
   // no tiene sentido si una factura mezcla productos de varios cultivos.
+  // Facturas y Tienda se llevan POR SEPARADO: son estructuras de precio distintas
+  // (venta al público en Tienda vs. precio pactado con cada cliente en Facturas),
+  // mezclarlas en una sola media no sirve para nada.
   const productosDelCultivo = dbGet('productos').filter(p=>p.cultivo===cultivo);
   const idsDelCultivo = new Set(productosDelCultivo.map(p=>p.id));
   const nombresDelCultivo = productosDelCultivo.map(p=>p.nombre.toLowerCase());
@@ -2735,24 +2759,40 @@ function calcularRentabilidadCultivo(cultivo){
     const d = (linea.desc||linea.nombre||'').toLowerCase();
     return nombresDelCultivo.some(n=>d.includes(n)||n.includes(d));
   };
-  let kgVendidos=0, ingresoVentas=0;
+  let kgVendidosFact=0, ingresoFact=0;
   facts.filter(f=>f.tipo==='C').forEach(f=>(f.lineas||[]).forEach(l=>{
-    if(perteneceCultivo(l)){ kgVendidos += parseFloat(l.uds)||0; ingresoVentas += parseFloat(l.imp)||0; }
+    if(perteneceCultivo(l)){ kgVendidosFact += parseFloat(l.uds)||0; ingresoFact += parseFloat(l.imp)||0; }
   }));
+  let kgVendidosTienda=0, ingresoTienda=0;
   dbGet('ventas_tienda').forEach(v=>(v.lineas||[]).forEach(l=>{
     if(perteneceCultivo(l)){
       const cant = parseFloat(l.cantidad ?? l.uds)||0;
-      kgVendidos += cant; ingresoVentas += cant*(parseFloat(l.precio)||0);
+      kgVendidosTienda += cant; ingresoTienda += cant*(parseFloat(l.precio)||0);
     }
   }));
-  const ing = ingresoVentas;
+  const kgVendidos = kgVendidosFact + kgVendidosTienda;
+  const ing = ingresoFact + ingresoTienda;
   const margen = ing-gas;
   const margenPct = ing>0 ? margen/ing*100 : null;
-  const precioVentaMedio = kgVendidos>0 ? ingresoVentas/kgVendidos : null;
+
+  const precioVentaMedioFact = kgVendidosFact>0 ? ingresoFact/kgVendidosFact : null;
+  const precioVentaMedioTienda = kgVendidosTienda>0 ? ingresoTienda/kgVendidosTienda : null;
+  const margenPorKgFact = (costePorKg!=null && precioVentaMedioFact!=null) ? precioVentaMedioFact-costePorKg : null;
+  const margenPorKgTienda = (costePorKg!=null && precioVentaMedioTienda!=null) ? precioVentaMedioTienda-costePorKg : null;
+  const margenPorKgFactPct = (margenPorKgFact!=null && precioVentaMedioFact>0) ? margenPorKgFact/precioVentaMedioFact*100 : null;
+  const margenPorKgTiendaPct = (margenPorKgTienda!=null && precioVentaMedioTienda>0) ? margenPorKgTienda/precioVentaMedioTienda*100 : null;
+  // Compatibilidad: media conjunta, solo para quien la quiera ver de un vistazo
+  const precioVentaMedio = kgVendidos>0 ? ing/kgVendidos : null;
   const margenPorKg = (costePorKg!=null && precioVentaMedio!=null) ? precioVentaMedio-costePorKg : null;
   const margenPorKgPct = (margenPorKg!=null && precioVentaMedio>0) ? margenPorKg/precioVentaMedio*100 : null;
 
-  return { gas, ing, margen, margenPct, kgCosechados, kgVendidos, costePorKg, precioVentaMedio, margenPorKg, margenPorKgPct, sinProductosVinculados: productosDelCultivo.length===0 };
+  return {
+    gas, ing, margen, margenPct, kgCosechados, kgVendidos, costePorKg,
+    precioVentaMedio, margenPorKg, margenPorKgPct,
+    kgVendidosFact, ingresoFact, precioVentaMedioFact, margenPorKgFact, margenPorKgFactPct,
+    kgVendidosTienda, ingresoTienda, precioVentaMedioTienda, margenPorKgTienda, margenPorKgTiendaPct,
+    sinProductosVinculados: productosDelCultivo.length===0
+  };
 }
 
 function renderCultivosCostes(){
@@ -2761,6 +2801,32 @@ function renderCultivosCostes(){
   const cultivos=CULTIVOS.map(c=>c.nombre);
   const grid=document.getElementById('cultivos-grid');
   const resultados = cultivos.map(c=>calcularRentabilidadCultivo(c));
+
+  // Ingresos que no se han podido vincular a ningún cultivo (para que no desaparezcan sin más)
+  const catalogoProdCC = dbGet('productos');
+  const cultivoDeLineaCC = (linea)=>{
+    const pid = linea.productoId ?? linea.prodId;
+    if(pid!=null && pid!==''){ const p=catalogoProdCC.find(x=>x.id===parseInt(pid)); if(p) return p.cultivo||null; }
+    const d=(linea.desc||linea.nombre||'').toLowerCase();
+    const match=catalogoProdCC.find(p=>p.nombre && (d.includes(p.nombre.toLowerCase())||p.nombre.toLowerCase().includes(d)));
+    return match?.cultivo||null;
+  };
+  let ingSinAsignar = 0;
+  dbGet('facturas').filter(f=>f.tipo==='C').forEach(f=>(f.lineas||[]).forEach(l=>{
+    if(!cultivoDeLineaCC(l)) ingSinAsignar += parseFloat(l.imp)||0;
+  }));
+  dbGet('ventas_tienda').forEach(v=>(v.lineas||[]).forEach(l=>{
+    if(!cultivoDeLineaCC(l)){ const cant=parseFloat(l.cantidad ?? l.uds)||0; ingSinAsignar += cant*(parseFloat(l.precio)||0); }
+  }));
+  const contSinAsignar = document.getElementById('cultivos-sin-asignar');
+  if(contSinAsignar){
+    contSinAsignar.innerHTML = ingSinAsignar>0 ? `
+      <div class="card" style="background:#fdf1e2;border:1px solid #e8c766;padding:14px;margin-bottom:20px">
+        <strong>⚠ ${eur(ingSinAsignar)} en ventas sin cultivo asignado</strong> — esas ventas no aparecen en ninguna tarjeta de abajo.
+        Ve a <strong>Productos</strong> y asegúrate de que cada producto tiene su cultivo puesto correctamente.
+      </div>` : '';
+  }
+
   grid.innerHTML=cultivos.map((c,i)=>{
     const r = resultados[i];
     const matsCultivo=mats.filter(m=>m.cultivo===c).length;
@@ -2774,11 +2840,9 @@ function renderCultivosCostes(){
       </div>
       ${r.sinProductosVinculados ? `<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--orange,#c9781f);background:var(--orange-l,#fdf1e2);padding:6px;border-radius:6px">⚠ Ningún producto del catálogo tiene este cultivo asignado — ve a Productos y asígnaselo para que aquí salgan ventas.</div>` : ''}
       <div style="text-align:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:12px">
-        ${r.margenPorKg!=null
-          ? `<strong style="color:${r.margenPorKg>=0?'var(--green)':'var(--red)'}">Margen real: ${eur(r.margenPorKg)}/kg (${r.margenPorKgPct.toFixed(1)}%)</strong>`
-          : (r.kgCosechados>0
-              ? `<span style="color:var(--text-s)">Sin ventas vinculadas todavía para calcular €/kg</span>`
-              : `<span style="color:var(--text-s)">Registra kg cosechados en Lotes para ver el margen por kilo</span>`)}
+        ${r.costePorKg!=null
+          ? `<span>Coste de producción: <strong>${eur(r.costePorKg)}/kg</strong> — <a href="#" onclick="event.preventDefault();abrirCostesDetalladosCultivo('${cultivo}')" style="color:var(--green-d)">ver margen por cliente/canal</a></span>`
+          : `<span style="color:var(--text-s)">Registra kg cosechados en Lotes para ver el coste por kilo</span>`}
       </div>
       <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;justify-content:center" onclick="abrirCostesDetalladosCultivo('${c}')">🧾 Costes detallados (${costesDetalle.filter(x=>x.cultivo===c).length})</button>
       ${matsCultivo?`<div style="text-align:center;font-size:11px;color:var(--text-s);margin-top:6px">🧪 ${matsCultivo} material(es) asignado(s)</div>`:''}
@@ -2804,6 +2868,48 @@ function abrirCostesDetalladosCultivo(cultivo){
   renderModalCostesCultivo(cultivo);
 }
 
+// Desglose SIN PROMEDIAR: cada combinación de producto + canal + cliente con su
+// propio precio real, comparada contra el coste del cultivo. Los precios de Tienda
+// y de cada cliente pueden ser todos distintos — mezclarlos en una media no sirve,
+// así que aquí se ven todos por separado.
+function desglosePreciosCultivo(cultivo, costePorKg){
+  const catalogo = dbGet('productos');
+  const idsDelCultivo = new Set(catalogo.filter(p=>p.cultivo===cultivo).map(p=>p.id));
+  const nombresDelCultivo = catalogo.filter(p=>p.cultivo===cultivo).map(p=>p.nombre.toLowerCase());
+  const pertenece = (linea)=>{
+    const pid = linea.productoId ?? linea.prodId;
+    if(pid!=null && pid!==''){ return idsDelCultivo.has(parseInt(pid)); }
+    const d=(linea.desc||linea.nombre||'').toLowerCase();
+    return nombresDelCultivo.some(n=>d.includes(n)||n.includes(d));
+  };
+  const grupos = {};
+  dbGet('facturas').filter(f=>f.tipo==='C').forEach(f=>{
+    const entidad = getCliName(f.cliId);
+    (f.lineas||[]).forEach(l=>{
+      if(!pertenece(l)) return;
+      const key = `${l.desc}|Factura|${entidad}`;
+      if(!grupos[key]) grupos[key] = {producto:l.desc, canal:'📄 Factura', entidad, uds:0, importe:0};
+      grupos[key].uds += parseFloat(l.uds)||0;
+      grupos[key].importe += parseFloat(l.imp)||0;
+    });
+  });
+  dbGet('ventas_tienda').forEach(v=>(v.lineas||[]).forEach(l=>{
+    if(!pertenece(l)) return;
+    const desc = l.nombre||l.desc||'';
+    const key = `${desc}|Tienda|—`;
+    if(!grupos[key]) grupos[key] = {producto:desc, canal:'🏪 Tienda', entidad:'—', uds:0, importe:0};
+    const cant = parseFloat(l.cantidad ?? l.uds)||0;
+    grupos[key].uds += cant;
+    grupos[key].importe += cant*(parseFloat(l.precio)||0);
+  }));
+  return Object.values(grupos).map(g=>{
+    const precio = g.uds>0 ? g.importe/g.uds : 0;
+    const margen = costePorKg!=null ? precio-costePorKg : null;
+    const margenPct = (margen!=null && precio>0) ? margen/precio*100 : null;
+    return {...g, precio, margen, margenPct};
+  }).sort((a,b)=>b.importe-a.importe);
+}
+
 function renderModalCostesCultivo(cultivo){
   const costes = dbGet('costes_cultivo').filter(c=>c.cultivo===cultivo).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
   const total = costes.reduce((s,c)=>s+(parseFloat(c.importe)||0),0);
@@ -2819,26 +2925,35 @@ function renderModalCostesCultivo(cultivo){
     <td><button class="btn btn-sm btn-icon" onclick="delCosteCultivo(${c.id},'${cultivo}')">🗑</button></td></tr>
   `).join('') || '<tr><td colspan="5" style="color:var(--text-s)">Todavía no hay costes detallados para este cultivo.</td></tr>';
 
-  // ── Rentabilidad por kilo (misma función que usa la tarjeta principal) ──
+  // ── Rentabilidad por kilo: SIN promediar — cada producto+canal+cliente con su
+  //    propio precio real, comparado contra el coste del cultivo ──
   const r = calcularRentabilidadCultivo(cultivo);
-  const productosDeEsteCultivo = dbGet('productos').filter(p=>p.cultivo===cultivo && p.pventa>0);
-  const precioCatalogoMedio = productosDeEsteCultivo.length ? productosDeEsteCultivo.reduce((s,p)=>s+p.pventa,0)/productosDeEsteCultivo.length : null;
+  const desglose = desglosePreciosCultivo(cultivo, r.costePorKg);
 
   openModal(`Costes detallados · ${cultivo}`, `
     <div class="card" style="background:var(--green-l,#e8efe6);padding:14px;border-radius:8px;margin-bottom:16px">
-      <h4 style="margin:0 0 8px">💹 Rentabilidad por kilo</h4>
-      <p style="font-size:12px;color:var(--text-s);margin:0 0 10px">Kg cosechados = suma de "Kg cosechados" de los lotes de este cultivo (pestaña Lotes). Precio de venta real = media de tus ventas; precio de catálogo = el que tienes puesto en Productos.</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px">
+      <h4 style="margin:0 0 8px">💹 Rentabilidad por kilo — cada precio real, sin promediar</h4>
+      <p style="font-size:12px;color:var(--text-s);margin:0 0 10px">Kg cosechados = suma de "Kg cosechados" de los lotes de este cultivo (pestaña Lotes). Cada cliente (y Tienda) tiene su propio precio pactado, así que en vez de una media se ve cada uno por separado, comparado contra el mismo coste de producción.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
         <div><div style="font-size:11px;color:var(--text-s)">Kg cosechados</div><div style="font-weight:bold">${r.kgCosechados?r.kgCosechados.toFixed(1)+' kg':'Sin registrar'}</div></div>
         <div><div style="font-size:11px;color:var(--text-s)">Gasto total cultivo</div><div style="font-weight:bold">${eur(r.gas)}</div></div>
         <div><div style="font-size:11px;color:var(--text-s)">Coste por kg</div><div style="font-weight:bold">${r.costePorKg!=null?eur(r.costePorKg)+'/kg':'Registra kg en Lotes'}</div></div>
-        <div><div style="font-size:11px;color:var(--text-s)">Precio venta medio real</div><div style="font-weight:bold">${r.precioVentaMedio!=null?eur(r.precioVentaMedio)+'/kg':'Sin ventas todavía'}</div></div>
-        <div><div style="font-size:11px;color:var(--text-s)">Precio de catálogo (Productos)</div><div style="font-weight:bold">${precioCatalogoMedio!=null?eur(precioCatalogoMedio)+'/kg':'Sin productos con precio'}</div></div>
       </div>
-      ${r.margenPorKg!=null ? `<div style="font-size:14px"><strong>Margen real: ${eur(r.margenPorKg)}/kg (${r.margenPorKgPct.toFixed(1)}%)</strong></div>` : ''}
+      ${desglose.length ? `
+        <div class="table-wrap" style="max-height:240px;overflow:auto">
+          <table><thead><tr><th>Producto</th><th>Canal</th><th>Cliente</th><th>Cantidad</th><th>Precio</th><th>Margen/kg</th></tr></thead>
+          <tbody>
+            ${desglose.map(g=>`<tr>
+              <td>${g.producto}</td><td>${g.canal}</td><td>${g.entidad}</td><td>${g.uds.toFixed(1)}</td>
+              <td>${eur(g.precio)}/kg</td>
+              <td>${g.margen!=null ? `<strong style="color:${g.margen>=0?'var(--green)':'var(--red)'}">${eur(g.margen)}/kg (${g.margenPct.toFixed(1)}%)</strong>` : '<span style="color:var(--text-s)">registra kg en Lotes</span>'}</td>
+            </tr>`).join('')}
+          </tbody></table>
+        </div>
+      ` : '<p style="color:var(--text-s);font-size:12px">Todavía no hay ventas vinculadas a este cultivo.</p>'}
       <div style="display:flex;gap:8px;align-items:flex-end;margin-top:12px;flex-wrap:wrap">
         <div><label style="font-size:11px;color:var(--text-s);display:block">Simular precio de venta (€/kg)</label>
-          <input class="input" type="number" step="0.01" id="rk-precio-simulado" value="${(precioCatalogoMedio ?? r.precioVentaMedio)!=null?(precioCatalogoMedio ?? r.precioVentaMedio).toFixed(2):''}" style="width:120px"></div>
+          <input class="input" type="number" step="0.01" id="rk-precio-simulado" value="${desglose[0]?desglose[0].precio.toFixed(2):''}" style="width:120px"></div>
         <button class="btn btn-secondary btn-sm" onclick="simularMargenKilo(${r.costePorKg||0})">Calcular margen simulado</button>
         <span id="rk-resultado-simulado" style="font-weight:bold"></span>
       </div>
