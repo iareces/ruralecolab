@@ -1594,7 +1594,8 @@ function dibujarFacturaPDF(doc, f, y0){
   }
   dibujarCabeceraTabla();
   (f.lineas||[]).forEach(l=>{
-    if(y > 272){ doc.addPage(); y = 20; dibujarCabeceraTabla(); }
+    if(y > 270){ doc.addPage(); y = 20; dibujarCabeceraTabla(); }
+    doc.setFont('courier','normal'); doc.setFontSize(8.5);
     doc.text(String(l.alb||'—'), cols[0].x, y);
     doc.text(String(l.ped||'—'), cols[1].x, y);
     const desc = String(l.desc||'');
@@ -1602,7 +1603,14 @@ function dibujarFacturaPDF(doc, f, y0){
     doc.text(String(l.uds||''), cols[3].x, y, {align:'right'});
     doc.text(eur(l.precio), cols[4].x, y, {align:'right'});
     doc.text(eur(l.imp), cols[5].x, y, {align:'right'});
-    y += 5.5;
+    if(l.albFecha){
+      doc.setFontSize(6.5); doc.setTextColor(120);
+      doc.text(fmtDate(l.albFecha), cols[0].x, y+3.2);
+      doc.setFontSize(8.5); doc.setTextColor(0);
+      y += 8.5;
+    } else {
+      y += 5.5;
+    }
   });
   y += 2;
   doc.setDrawColor(190);
@@ -2669,8 +2677,17 @@ function renderFP(){
 // ════════════════════════════════════════════════════
 //  FACTURAS CLIENTES
 // ════════════════════════════════════════════════════
+function numeroFacturaOrdenable(f){
+  if(!f.num) return -1; // sin numerar: van primero (se ven como pendientes de cerrar)
+  const m = f.num.match(/(\d+)/);
+  return m ? parseInt(m[1]) : 999999;
+}
 function renderFC(){
-  const facts=dbGet('facturas').filter(f=>f.tipo==='C').sort((a,b)=>b.fecha?.localeCompare(a.fecha));
+  const facts=dbGet('facturas').filter(f=>f.tipo==='C').sort((a,b)=>{
+    const na=numeroFacturaOrdenable(a), nb=numeroFacturaOrdenable(b);
+    if(na!==nb) return na-nb;
+    return (a.fecha||'').localeCompare(b.fecha||'');
+  });
   const borradores = facts.filter(f=>!f.num).length;
   document.getElementById('fc-tbody').innerHTML=facts.map(f=>`
     <tr style="background:${f.esRectificativa?'#fdecea':(!f.num?'var(--yellow-l,#fff8e6)':'')}">
@@ -4183,7 +4200,7 @@ async function agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedi
 
   const nuevasLineas = lineasAlbaran.map(l=>({
     id:'l'+Date.now()+Math.random().toString(36).slice(2,5),
-    alb:numAlbaran||'', ped:pedido||'', desc:l.desc, uds:l.uds, precio:l.precio, imp:l.imp,
+    alb:numAlbaran||'', albFecha:fecha||'', ped:pedido||'', desc:l.desc, uds:l.uds, precio:l.precio, imp:l.imp,
     productoId:l.productoId||null, lote:l.lote||'', origenAlbaranId:origenAlbaranId||null
   }));
 
