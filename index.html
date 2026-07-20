@@ -3650,8 +3650,96 @@ function renderTicketsRecientesTienda(){
   tbody.innerHTML = ventas.map(v=>`
     <tr><td>${v.num||'—'}</td><td>${fmtDate(v.fecha)}</td><td>${v.hora||'—'}</td>
     <td>${v.metodoPago==='datafono'?'💳 Datáfono':'🎫 Ticket'}</td><td><strong>${eur(v.total)}</strong></td>
-    <td><button class="btn btn-sm btn-icon" title="Descargar PDF" onclick='generarTicketPDF(${JSON.stringify(v).replace(/'/g,"&apos;")})'>📄</button></td></tr>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-sm btn-icon" title="Descargar PDF" onclick='generarTicketPDF(${JSON.stringify(v).replace(/'/g,"&apos;")})'>📄</button>
+      <button class="btn btn-sm btn-icon" title="Editar" onclick="formEditarVentaTienda(${v.id})">✏️</button>
+      <button class="btn btn-sm btn-icon" title="Eliminar" onclick="delVentaTienda(${v.id})">🗑</button>
+    </td></tr>
   `).join('');
+}
+
+// ── Editar / eliminar ventas de Tienda ──
+let lineasEdicionVentaTienda = [];
+
+function formEditarVentaTienda(id){
+  const v = dbGet('ventas_tienda').find(x=>x.id===id);
+  if(!v){ toast('Venta no encontrada','err'); return; }
+  lineasEdicionVentaTienda = (v.lineas||[]).map(l=>({...l}));
+  openModal(`Editar ticket ${v.num||''}`, `
+    <div class="form-grid">
+      <div class="form-group"><label>Fecha</label><input class="input" type="date" id="evt-fecha" value="${v.fecha||''}"></div>
+      <div class="form-group"><label>Hora</label><input class="input" type="time" id="evt-hora" value="${v.hora||''}"></div>
+      <div class="form-group"><label>Método de pago</label><select class="select" id="evt-pago">
+        <option value="ticket" ${v.metodoPago!=='datafono'?'selected':''}>🎫 Ticket / Efectivo</option>
+        <option value="datafono" ${v.metodoPago==='datafono'?'selected':''}>💳 Datáfono</option>
+      </select></div>
+    </div>
+    <div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th></th></tr></thead>
+    <tbody id="evt-lineas-tbody"></tbody></table></div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="lineasEdicionVentaTienda.push({nombre:'',cantidad:1,precio:0});renderLineasEdicionVentaTienda()">+ Añadir línea</button>
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicionVentaTienda(${id})">💾 Guardar cambios</button>`);
+  renderLineasEdicionVentaTienda();
+}
+
+function renderLineasEdicionVentaTienda(){
+  const tbody = document.getElementById('evt-lineas-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = lineasEdicionVentaTienda.map((l,idx)=>{
+    const cant = l.cantidad ?? l.uds ?? 1;
+    return `<tr>
+      <td><input class="input" value="${l.nombre||l.desc||''}" onchange="lineasEdicionVentaTienda[${idx}].nombre=this.value"></td>
+      <td><input class="input" type="number" step="0.01" style="width:80px" value="${cant}" onchange="lineasEdicionVentaTienda[${idx}].cantidad=parseFloat(this.value)||0;renderLineasEdicionVentaTienda()"></td>
+      <td><input class="input" type="number" step="0.01" style="width:90px" value="${l.precio||0}" onchange="lineasEdicionVentaTienda[${idx}].precio=parseFloat(this.value)||0;renderLineasEdicionVentaTienda()"></td>
+      <td>${eur(cant*(l.precio||0))}</td>
+      <td><button class="btn btn-sm btn-icon" onclick="lineasEdicionVentaTienda.splice(${idx},1);renderLineasEdicionVentaTienda()">🗑</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function guardarEdicionVentaTienda(id){
+  const v = dbGet('ventas_tienda').find(x=>x.id===id);
+  if(!v) return;
+  const lineasValidas = lineasEdicionVentaTienda.filter(l=>(l.nombre||l.desc) && (l.cantidad??l.uds)>0);
+  if(!lineasValidas.length){ toast('Añade al menos una línea','err'); return; }
+  const fecha = document.getElementById('evt-fecha').value;
+  const hora = document.getElementById('evt-hora').value;
+  const metodoPago = document.getElementById('evt-pago').value;
+
+  // Revertir el stock de las líneas ORIGINALES, y descontar el de las líneas NUEVAS
+  await descontarStockPorVenta((v.lineas||[]).map(l=>({desc:l.nombre||l.desc, uds:-(parseFloat(l.cantidad??l.uds)||0)})));
+  await descontarStockPorVenta(lineasValidas.map(l=>({desc:l.nombre||l.desc, uds:parseFloat(l.cantidad??l.uds)||0})));
+
+  let base=0, ivaImp=0;
+  lineasValidas.forEach(l=>{
+    const importe=(l.cantidad??l.uds)*(l.precio||0);
+    const ivaPct=l.iva||0;
+    const baseLinea=importe/(1+ivaPct/100);
+    base+=baseLinea; ivaImp+=importe-baseLinea;
+  });
+  const data = { fecha, hora, metodoPago, lineas:lineasValidas, base, ivaImp, total:base+ivaImp };
+  try{
+    await sbUpdate('ventas_tienda', id, data);
+    const i = CACHE.ventas_tienda.findIndex(x=>x.id===id);
+    if(i>=0) CACHE.ventas_tienda[i] = {...v, ...data};
+    closeModal();
+    renderTicketsRecientesTienda();
+    toast('✅ Ticket actualizado');
+  }catch(e){ toast('Error al guardar: '+e.message,'err'); }
+}
+
+async function delVentaTienda(id){
+  const v = dbGet('ventas_tienda').find(x=>x.id===id);
+  if(!v) return;
+  if(!confirm(`¿Eliminar el ticket ${v.num||''} (${eur(v.total)})? Se repondrá el stock descontado.`)) return;
+  try{
+    await descontarStockPorVenta((v.lineas||[]).map(l=>({desc:l.nombre||l.desc, uds:-(parseFloat(l.cantidad??l.uds)||0)})));
+    await sbDelete('ventas_tienda', id);
+    CACHE.ventas_tienda = CACHE.ventas_tienda.filter(x=>x.id!==id);
+    closeModal();
+    renderTicketsRecientesTienda();
+    toast('Ticket eliminado, stock repuesto','info');
+  }catch(e){ toast('Error: '+e.message,'err'); }
 }
 
 function anadirProductoCarrito(prodId){
@@ -3806,7 +3894,11 @@ function verHistorialVentasTienda(){
     <tr><td>${v.num}</td><td>${fmtDate(v.fecha)} ${v.hora||''}</td>
     <td>${v.metodoPago==='datafono'?'💳 Datáfono':'🎫 Ticket'}</td>
     <td>${eur(v.total)}</td>
-    <td><button class="btn btn-sm btn-icon" onclick='generarTicketPDF(${JSON.stringify(v).replace(/'/g,"&apos;")})'>📄</button></td></tr>
+    <td style="display:flex;gap:4px">
+      <button class="btn btn-sm btn-icon" onclick='generarTicketPDF(${JSON.stringify(v).replace(/'/g,"&apos;")})'>📄</button>
+      <button class="btn btn-sm btn-icon" title="Editar" onclick="formEditarVentaTienda(${v.id})">✏️</button>
+      <button class="btn btn-sm btn-icon" title="Eliminar" onclick="delVentaTienda(${v.id})">🗑</button>
+    </td></tr>
   `).join('') || `<tr><td colspan="5" style="color:var(--text-s)">Todavía no se ha generado ningún ticket.</td></tr>`;
   openModal('Historial de tickets de tienda', `
     <div class="table-wrap" style="max-height:400px;overflow:auto">
@@ -3925,11 +4017,15 @@ async function guardarAlbaranPendienteIndividual(idx){
   const lineas = r.lineas.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0), productoId:l.productoId||null, lote:l.lote||''}));
   if(!lineas.length){ toast('Añade al menos una línea con descripción','err'); return; }
   try{
-    const factura = await agregarAlbaranAFacturaProvisional({cliId:r.cliId, fecha:r.fecha, numAlbaran:r.numAlbaran, pedido:r.pedido, lineasAlbaran:lineas});
-    // Registro de auditoría: queda constancia de qué albarán se metió en qué factura
+    // Se crea primero el registro (sin factura todavía) para poder etiquetar sus líneas con este id
     const registros = dbGet('albaranes_pendientes');
-    const log = { id: nextId(registros), fecha:r.fecha, numAlbaran:r.numAlbaran, pedido:r.pedido||'', cliId:r.cliId, lineas, facturado:true, facturaId:factura.id, archivo:r.archivo };
-    try{ const saved = await sbInsert('albaranes_pendientes', log); CACHE.albaranes_pendientes = [...registros, saved]; }catch(eLog){ console.warn('No se pudo registrar el log del albarán:', eLog.message); }
+    const log = { id: nextId(registros), fecha:r.fecha, numAlbaran:r.numAlbaran, pedido:r.pedido||'', cliId:r.cliId, lineas, facturado:false, facturaId:null, archivo:r.archivo };
+    const savedLog = await sbInsert('albaranes_pendientes', log);
+    CACHE.albaranes_pendientes = [...registros, savedLog];
+
+    const factura = await agregarAlbaranAFacturaProvisional({cliId:r.cliId, fecha:r.fecha, numAlbaran:r.numAlbaran, pedido:r.pedido, lineasAlbaran:lineas, origenAlbaranId:savedLog.id});
+    await sbUpdate('albaranes_pendientes', savedLog.id, {facturado:true, facturaId:factura.id});
+    savedLog.facturado=true; savedLog.facturaId=factura.id;
 
     revisionAlbaranesPendientes.splice(idx,1);
     renderRevisionAlbaranesPendientes();
@@ -3949,16 +4045,20 @@ function renderAlbaranesPendientes(){
   const recientes = dbGet('albaranes_pendientes').slice().sort((a,b)=>(b.id||0)-(a.id||0)).slice(0,30);
   const cont = document.getElementById('ap-por-cliente');
   cont.innerHTML = recientes.length ? `
-    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Nº Albarán</th><th>Líneas</th><th>Importe</th><th>Factura</th></tr></thead><tbody>
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Nº Albarán</th><th>Líneas</th><th>Importe</th><th>Factura</th><th></th></tr></thead><tbody>
     ${recientes.map(a=>{
       const factura = a.facturaId ? dbGet('facturas').find(f=>f.id===a.facturaId) : null;
       const importe = (a.lineas||[]).reduce((s,l)=>s+(parseFloat(l.imp)||0),0);
       return `<tr><td>${fmtDate(a.fecha)}</td><td>${getCliName(a.cliId)}</td><td>${a.numAlbaran||'—'}</td>
         <td>${(a.lineas||[]).length} línea(s)</td><td>${eur(importe)}</td>
-        <td>${factura ? (factura.num?`<span class="badge badge-ok">${factura.num}</span>`:'<span class="badge badge-grey">⏳ sin numerar</span>') : '—'}</td></tr>`;
+        <td>${factura ? (factura.num?`<span class="badge badge-ok">${factura.num}</span>`:'<span class="badge badge-grey">⏳ sin numerar</span>') : '—'}</td>
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-sm btn-icon" title="Editar" onclick="formEditarAlbaranLog(${a.id})">✏️</button>
+          <button class="btn btn-sm btn-icon" title="Eliminar" onclick="delAlbaranLog(${a.id})">🗑</button>
+        </td></tr>`;
     }).join('')}
     </tbody></table></div>
-    <p style="font-size:12px;color:var(--text-s);margin-top:10px">Esto es solo un registro de lo que has subido — para editar o borrar líneas, ve a la factura del cliente en Facturas Clientes.</p>
+    <p style="font-size:12px;color:var(--text-s);margin-top:10px">Editar o borrar aquí ajusta automáticamente la factura provisional del cliente y el stock.</p>
   ` : '<p style="color:var(--text-s)">Todavía no has subido ningún albarán.</p>';
 }
 
@@ -4056,10 +4156,15 @@ async function guardarAlbaranManual(){
   const lineas = lineasAlbaranManual.filter(l=>l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds, precio:l.precio, imp:l.uds*l.precio, productoId:l.productoId||null, lote:l.lote||''}));
   if(!lineas.length){ toast('Añade al menos una línea con descripción','err'); return; }
   try{
-    const factura = await agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedido, lineasAlbaran:lineas});
     const registros = dbGet('albaranes_pendientes');
-    const log = { id: nextId(registros), fecha, numAlbaran, pedido, cliId, lineas, facturado:true, facturaId:factura.id, archivo:'(manual)' };
-    try{ const saved = await sbInsert('albaranes_pendientes', log); CACHE.albaranes_pendientes = [...registros, saved]; }catch(eLog){ console.warn('No se pudo registrar el log del albarán:', eLog.message); }
+    const log = { id: nextId(registros), fecha, numAlbaran, pedido, cliId, lineas, facturado:false, facturaId:null, archivo:'(manual)' };
+    const savedLog = await sbInsert('albaranes_pendientes', log);
+    CACHE.albaranes_pendientes = [...registros, savedLog];
+
+    const factura = await agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedido, lineasAlbaran:lineas, origenAlbaranId:savedLog.id});
+    await sbUpdate('albaranes_pendientes', savedLog.id, {facturado:true, facturaId:factura.id});
+    savedLog.facturado=true; savedLog.facturaId=factura.id;
+
     closeModal();
     renderAlbaranesPendientes();
     toast(`✅ Añadido a la factura ${factura.num||'provisional'} de ${getCliName(cliId)}`);
@@ -4071,7 +4176,7 @@ async function guardarAlbaranManual(){
 //  (sin numerar) del cliente para ese mes — la crea si no
 //  existe, o le añade las líneas si ya la había empezado.
 // ════════════════════════════════════════════════════
-async function agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedido, lineasAlbaran, ivaPct}){
+async function agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedido, lineasAlbaran, ivaPct, origenAlbaranId}){
   const mes = (fecha||today()).slice(0,7);
   const facts = dbGet('facturas');
   let factura = facts.find(f=>f.tipo==='C' && !f.num && f.cliId===cliId && (f.fecha||'').slice(0,7)===mes);
@@ -4079,7 +4184,7 @@ async function agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedi
   const nuevasLineas = lineasAlbaran.map(l=>({
     id:'l'+Date.now()+Math.random().toString(36).slice(2,5),
     alb:numAlbaran||'', ped:pedido||'', desc:l.desc, uds:l.uds, precio:l.precio, imp:l.imp,
-    productoId:l.productoId||null, lote:l.lote||''
+    productoId:l.productoId||null, lote:l.lote||'', origenAlbaranId:origenAlbaranId||null
   }));
 
   if(factura){
@@ -4108,6 +4213,98 @@ async function agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedi
   }
   await descontarStockPorVenta(nuevasLineas);
   return factura;
+}
+
+// Deshace lo que un albarán concreto había añadido a su factura: quita esas líneas,
+// recalcula totales, y repone el stock — para poder editar/borrar el albarán después.
+async function quitarLineasDeAlbaranDeFactura(facturaId, origenAlbaranId){
+  const factura = dbGet('facturas').find(f=>f.id===facturaId);
+  if(!factura) return;
+  const lineasQuitadas = (factura.lineas||[]).filter(l=>l.origenAlbaranId===origenAlbaranId);
+  const lineasRestantes = (factura.lineas||[]).filter(l=>l.origenAlbaranId!==origenAlbaranId);
+  if(!lineasQuitadas.length) return;
+  await descontarStockPorVenta(lineasQuitadas.map(l=>({desc:l.desc, uds:-(parseFloat(l.uds)||0)})));
+  if(!lineasRestantes.length && !factura.num){
+    // Era la única línea de una factura provisional: se borra la factura entera
+    await sbDelete('facturas', factura.id);
+    CACHE.facturas = CACHE.facturas.filter(f=>f.id!==factura.id);
+    return;
+  }
+  const base = lineasRestantes.reduce((s,l)=>s+(parseFloat(l.imp)||0),0);
+  const ivaImp = base*(factura.iva||0)/100;
+  const cambios = { lineas:lineasRestantes, base, ivaImp, total:base+ivaImp };
+  await sbUpdate('facturas', factura.id, cambios);
+  Object.assign(factura, cambios);
+}
+
+async function delAlbaranLog(id){
+  const log = dbGet('albaranes_pendientes').find(x=>x.id===id);
+  if(!log) return;
+  if(!confirm(`¿Eliminar este albarán? Se quitarán sus líneas de la factura de ${getCliName(log.cliId)} y se repondrá el stock.`)) return;
+  try{
+    if(log.facturaId) await quitarLineasDeAlbaranDeFactura(log.facturaId, id);
+    await sbDelete('albaranes_pendientes', id);
+    CACHE.albaranes_pendientes = CACHE.albaranes_pendientes.filter(x=>x.id!==id);
+    renderAlbaranesPendientes();
+    toast('Albarán eliminado, factura y stock actualizados','info');
+  }catch(e){ toast('Error: '+e.message,'err'); }
+}
+
+let lineasEdicionAlbaranLog = [];
+function formEditarAlbaranLog(id){
+  const log = dbGet('albaranes_pendientes').find(x=>x.id===id);
+  if(!log) return;
+  lineasEdicionAlbaranLog = (log.lineas||[]).map(l=>({...l}));
+  const clientes = dbGet('clientes');
+  openModal(`Editar albarán ${log.numAlbaran||''}`, `
+    <div class="form-grid">
+      <div class="form-group full"><label>Cliente</label><select class="select" id="eal-cliente">
+        ${clientes.map(c=>`<option value="${c.id}" ${log.cliId===c.id?'selected':''}>${c.nombre}</option>`).join('')}
+      </select></div>
+      <div class="form-group"><label>Fecha</label><input class="input" type="date" id="eal-fecha" value="${log.fecha||''}"></div>
+      <div class="form-group"><label>Nº Albarán</label><input class="input" id="eal-num" value="${log.numAlbaran||''}"></div>
+      <div class="form-group"><label>Nº Pedido</label><input class="input" id="eal-pedido" value="${log.pedido||''}"></div>
+    </div>
+    <div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th></th></tr></thead>
+    <tbody id="eal-lineas-tbody"></tbody></table></div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="lineasEdicionAlbaranLog.push({desc:'',uds:1,precio:0});renderLineasEdicionAlbaranLog()">+ Añadir línea</button>
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicionAlbaranLog(${id})">💾 Guardar cambios</button>`);
+  renderLineasEdicionAlbaranLog();
+}
+function renderLineasEdicionAlbaranLog(){
+  const tbody = document.getElementById('eal-lineas-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = lineasEdicionAlbaranLog.map((l,idx)=>`
+    <tr>
+      <td><input class="input" value="${l.desc||''}" onchange="lineasEdicionAlbaranLog[${idx}].desc=this.value"></td>
+      <td><input class="input" type="number" step="0.01" style="width:80px" value="${l.uds||1}" onchange="lineasEdicionAlbaranLog[${idx}].uds=parseFloat(this.value)||0;renderLineasEdicionAlbaranLog()"></td>
+      <td><input class="input" type="number" step="0.01" style="width:90px" value="${l.precio||0}" onchange="lineasEdicionAlbaranLog[${idx}].precio=parseFloat(this.value)||0;renderLineasEdicionAlbaranLog()"></td>
+      <td>${eur((l.uds||0)*(l.precio||0))}</td>
+      <td><button class="btn btn-sm btn-icon" onclick="lineasEdicionAlbaranLog.splice(${idx},1);renderLineasEdicionAlbaranLog()">🗑</button></td>
+    </tr>
+  `).join('');
+}
+async function guardarEdicionAlbaranLog(id){
+  const log = dbGet('albaranes_pendientes').find(x=>x.id===id);
+  if(!log) return;
+  const cliId = parseInt(document.getElementById('eal-cliente').value)||null;
+  const fecha = document.getElementById('eal-fecha').value;
+  const numAlbaran = document.getElementById('eal-num').value.trim();
+  const pedido = document.getElementById('eal-pedido').value.trim();
+  const lineas = lineasEdicionAlbaranLog.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0)}));
+  if(!cliId || !fecha || !lineas.length){ toast('Completa cliente, fecha y al menos una línea','err'); return; }
+  try{
+    // Deshace lo que había puesto en la factura anterior, y lo vuelve a añadir con los datos nuevos
+    if(log.facturaId) await quitarLineasDeAlbaranDeFactura(log.facturaId, id);
+    const factura = await agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedido, lineasAlbaran:lineas, origenAlbaranId:id});
+    const cambios = { fecha, numAlbaran, pedido, cliId, lineas, facturaId:factura.id };
+    await sbUpdate('albaranes_pendientes', id, cambios);
+    Object.assign(log, cambios);
+    closeModal();
+    renderAlbaranesPendientes();
+    toast('✅ Albarán actualizado');
+  }catch(e){ toast('Error al guardar: '+e.message,'err'); }
 }
 
 function renderTickets(){
