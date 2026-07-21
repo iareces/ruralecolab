@@ -158,7 +158,7 @@ tr:hover td{background:#FAFCFA}
 .totales-final{display:flex;justify-content:space-between;padding:10px 0 4px;font-size:16px;font-weight:800;color:var(--green-d);border-top:2px solid var(--green);margin-top:8px}
 
 /* ─── LINEAS ─── */
-.linea-row{display:grid;grid-template-columns:80px 80px 1fr 60px 80px 80px 130px 90px 32px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.linea-row{display:grid;grid-template-columns:80px 120px 80px 1fr 60px 80px 80px 130px 90px 32px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
 .linea-row:last-child{border-bottom:none}
 .linea-add-btn{display:block;width:100%;padding:8px;text-align:center;background:var(--green-l);color:var(--green-d);border:2px dashed var(--green-m);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin-top:8px;transition:.2s}
 .linea-add-btn:hover{background:var(--green);color:#fff}
@@ -343,7 +343,7 @@ tr:hover td{background:#FAFCFA}
       <div class="kpi-grid" id="dash-comparativa"></div>
     </div>
     <div class="dash-charts">
-      <div class="card"><div class="card-header"><div class="card-title">📈 Gastos vs Ingresos</div></div><div class="card-body"><canvas id="ch-main" height="140"></canvas></div></div>
+      <div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><div class="card-title">📈 Gastos vs Ingresos</div><select class="select" id="dash-anio" style="width:auto" onchange="renderDashboard()"></select></div><div class="card-body"><canvas id="ch-main" height="140"></canvas></div></div>
       <div class="card"><div class="card-header"><div class="card-title">🥕 Ingresos por Producto</div></div><div class="card-body"><canvas id="ch-cultivo" height="140"></canvas></div></div>
     </div>
     <div class="card">
@@ -458,9 +458,9 @@ tr:hover td{background:#FAFCFA}
           </div>
           <div class="card-body" style="padding:8px 12px">
             <div style="overflow-x:auto">
-              <div style="min-width:640px">
-                <div style="display:grid;grid-template-columns:80px 80px 1fr 60px 80px 80px 130px 90px 32px;gap:6px;padding:4px 0;font-size:10px;font-weight:700;color:var(--text-s);text-transform:uppercase">
-                  <span>Albarán</span><span>Pedido</span><span>Descripción</span><span>Uds</span><span>Precio</span><span>Importe</span><span>Producto (cultivo)</span><span>Lote</span><span></span>
+              <div style="min-width:720px">
+                <div style="display:grid;grid-template-columns:80px 120px 80px 1fr 60px 80px 80px 130px 90px 32px;gap:6px;padding:4px 0;font-size:10px;font-weight:700;color:var(--text-s);text-transform:uppercase">
+                  <span>Albarán</span><span>Fecha Alb.</span><span>Pedido</span><span>Descripción</span><span>Uds</span><span>Precio</span><span>Importe</span><span>Producto (cultivo)</span><span>Lote</span><span></span>
                 </div>
                 <div id="lineas-wrap"></div>
               </div>
@@ -1576,15 +1576,15 @@ function dibujarFacturaPDF(doc, f, y0){
   // ── Tabla de líneas ──
   const xTotales = margin+96;
   const cols = [
-    {k:'alb',  x:margin,     align:'left',  label:'Nº Albarán'},
-    {k:'ped',  x:margin+26,  align:'left',  label:'Nº Pedido'},
-    {k:'desc', x:margin+52,  align:'left',  label:'Descripción'},
+    {k:'alb',  x:margin,     align:'left',  label:'Nº Albarán (fecha)'},
+    {k:'ped',  x:margin+38,  align:'left',  label:'Nº Pedido'},
+    {k:'desc', x:margin+60,  align:'left',  label:'Descripción'},
     {k:'cant', x:margin+126, align:'right', label:'Cantidad'},
     {k:'imp',  x:margin+156, align:'right', label:'Importe'},
     {k:'tot',  x:pageR,      align:'right', label:'Total'}
   ];
   function dibujarCabeceraTabla(){
-    doc.setFont('courier','bold'); doc.setFontSize(8.5);
+    doc.setFont('courier','bold'); doc.setFontSize(7.5);
     cols.forEach(col=>{ doc.text(col.label, col.x, y, {align:col.align}); });
     y += 2;
     doc.setDrawColor(120);
@@ -1596,21 +1596,22 @@ function dibujarFacturaPDF(doc, f, y0){
   (f.lineas||[]).forEach(l=>{
     if(y > 270){ doc.addPage(); y = 20; dibujarCabeceraTabla(); }
     doc.setFont('courier','normal'); doc.setFontSize(8.5);
-    doc.text(String(l.alb||'—'), cols[0].x, y);
+    if(l.albFecha){
+      const p = l.albFecha.split('-');
+      const fechaCorta = p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : l.albFecha;
+      doc.setFontSize(7);
+      doc.text(`${l.alb||'—'} (${fechaCorta})`, cols[0].x, y);
+      doc.setFontSize(8.5);
+    } else {
+      doc.text(String(l.alb||'—'), cols[0].x, y);
+    }
     doc.text(String(l.ped||'—'), cols[1].x, y);
     const desc = String(l.desc||'');
-    doc.text(desc.length>32 ? desc.slice(0,31)+'…' : desc, cols[2].x, y);
+    doc.text(desc.length>28 ? desc.slice(0,27)+'…' : desc, cols[2].x, y);
     doc.text(String(l.uds||''), cols[3].x, y, {align:'right'});
     doc.text(eur(l.precio), cols[4].x, y, {align:'right'});
     doc.text(eur(l.imp), cols[5].x, y, {align:'right'});
-    if(l.albFecha){
-      doc.setFontSize(6.5); doc.setTextColor(120);
-      doc.text(fmtDate(l.albFecha), cols[0].x, y+3.2);
-      doc.setFontSize(8.5); doc.setTextColor(0);
-      y += 8.5;
-    } else {
-      y += 5.5;
-    }
+    y += 5.5;
   });
   y += 2;
   doc.setDrawColor(190);
@@ -1843,12 +1844,31 @@ function renderDashboard(){
     <td><button class="btn btn-sm btn-icon" onclick="editFactura(${f.id})">✏️</button></td></tr>
   `).join('');
   // Charts
+  const anioSel = document.getElementById('dash-anio');
+  if(anioSel && !anioSel.options.length){
+    const anios = [...new Set([
+      ...facts.map(f=>f.fecha?.slice(0,4)),
+      ...dbGet('tickets').map(t=>t.fecha?.slice(0,4)),
+      ...dbGet('ventas_tienda').map(v=>v.fecha?.slice(0,4))
+    ])].filter(Boolean).sort().reverse();
+    if(!anios.length) anios.push(String(new Date().getFullYear()));
+    anioSel.innerHTML = anios.map(a=>`<option value="${a}">${a}</option>`).join('');
+  }
+  const anioGrafico = anioSel?.value || String(new Date().getFullYear());
   const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const gasM=Array(12).fill(0),ingM=Array(12).fill(0);
-  facts.forEach(f=>{
+  facts.filter(f=>f.fecha?.startsWith(anioGrafico)).forEach(f=>{
     const m=parseInt(f.fecha?.split('-')[1]||'1')-1;
     if(f.tipo==='P') gasM[m]+=f.total;
     else ingM[m]+=f.total;
+  });
+  dbGet('tickets').filter(t=>t.fecha?.startsWith(anioGrafico)).forEach(t=>{
+    const m=parseInt(t.fecha.split('-')[1])-1;
+    ingM[m]+=(parseFloat(t.ticket)||0)+(parseFloat(t.datafono)||0);
+  });
+  dbGet('ventas_tienda').filter(v=>v.fecha?.startsWith(anioGrafico)).forEach(v=>{
+    const m=parseInt(v.fecha.split('-')[1])-1;
+    ingM[m]+=parseFloat(v.total)||0;
   });
   if(chMain) chMain.destroy();
   try{
@@ -2052,7 +2072,7 @@ function genNum(){
 
 function addLinea(){
   const id='l'+Date.now()+Math.random().toString(36).slice(2,5);
-  nfLineas.push({id,alb:'',ped:'',desc:'',uds:1,precio:0,imp:0});
+  nfLineas.push({id,alb:'',albFecha:'',ped:'',desc:'',uds:1,precio:0,imp:0});
   renderLineas();
 }
 
@@ -2071,11 +2091,12 @@ function renderLineas(){
     return `
     <div class="linea-row" id="lr-${l.id}">
       <input class="input linea-alb" placeholder="Albarán" value="${l.alb||''}" oninput="updLinea('${l.id}','alb',this.value)">
+      <input class="input linea-albfecha" type="date" title="Fecha del albarán" value="${l.albFecha||''}" onchange="updLinea('${l.id}','albFecha',this.value);actualizarFechaFacturaDesdeLineas()">
       <input class="input linea-ped" placeholder="Pedido" value="${l.ped||''}" oninput="updLinea('${l.id}','ped',this.value)">
       <input class="input" placeholder="Descripción" value="${l.desc||''}" oninput="updLinea('${l.id}','desc',this.value)">
       <input class="input" type="number" min="0" step="0.001" value="${l.uds||1}" oninput="updLinea('${l.id}','uds',this.value);calcLinea('${l.id}')">
       <input class="input" type="number" min="0" step="0.01" value="${l.precio||0}" oninput="updLinea('${l.id}','precio',this.value);calcLinea('${l.id}')">
-      <input class="input" readonly value="${fmt(l.imp)}" style="background:#f8f8f8;font-weight:700">
+      <input class="input linea-importe" readonly value="${fmt(l.imp)}" style="background:#f8f8f8;font-weight:700">
       <select class="select linea-producto" title="Enlazar con producto del catálogo (para que el margen se calcule bien)" onchange="vincularProductoLinea('${l.id}',this.value)">
         <option value="">🔗 Sin enlazar</option>
         ${productos.map(p=>`<option value="${p.id}" ${String(l.productoId)===String(p.id)?'selected':''}>${p.nombre}</option>`).join('')}
@@ -2107,12 +2128,23 @@ function vincularProductoLinea(id, prodId){
 
 function updLinea(id,k,v){ const l=nfLineas.find(x=>x.id===id); if(l) l[k]=v; }
 
+function actualizarFechaFacturaDesdeLineas(){
+  const fechas = nfLineas.map(l=>l.albFecha).filter(Boolean);
+  if(!fechas.length) return;
+  const maxFecha = fechas.reduce((a,b)=>a>b?a:b);
+  const fechaInput = document.getElementById('nf-fecha');
+  if(fechaInput && maxFecha > fechaInput.value){
+    fechaInput.value = maxFecha;
+    toast(`📅 Fecha de la factura actualizada a ${fmtDate(maxFecha)} (albarán más reciente)`,'info');
+  }
+}
+
 function calcLinea(id){
   const l=nfLineas.find(x=>x.id===id);
   if(!l) return;
   l.imp=parseFloat(l.uds||0)*parseFloat(l.precio||0);
   const row=document.getElementById('lr-'+id);
-  if(row){ const inputs=row.querySelectorAll('input'); inputs[5].value=fmt(l.imp); }
+  if(row){ const imp=row.querySelector('.linea-importe'); if(imp) imp.value=fmt(l.imp); }
   calcTotales();
 }
 
@@ -3668,7 +3700,7 @@ function renderTicketsRecientesTienda(){
     <tr><td>${v.num||'—'}</td><td>${fmtDate(v.fecha)}</td><td>${v.hora||'—'}</td>
     <td>${v.metodoPago==='datafono'?'💳 Datáfono':'🎫 Ticket'}</td><td><strong>${eur(v.total)}</strong></td>
     <td style="display:flex;gap:4px">
-      <button class="btn btn-sm btn-icon" title="Descargar PDF" onclick='generarTicketPDF(${JSON.stringify(v).replace(/'/g,"&apos;")})'>📄</button>
+      <button class="btn btn-sm btn-icon" title="Descargar PDF" onclick="generarTicketPDF(${v.id})">📄</button>
       <button class="btn btn-sm btn-icon" title="Editar" onclick="formEditarVentaTienda(${v.id})">✏️</button>
       <button class="btn btn-sm btn-icon" title="Eliminar" onclick="delVentaTienda(${v.id})">🗑</button>
     </td></tr>
@@ -3862,6 +3894,11 @@ async function cobrarVentaTienda(){
 }
 
 function generarTicketPDF(venta){
+  if(typeof venta === 'number' || typeof venta === 'string'){
+    const encontrada = dbGet('ventas_tienda').find(v=>v.id===parseInt(venta));
+    if(!encontrada){ toast('Ticket no encontrado','err'); return; }
+    venta = encontrada;
+  }
   try{
     const {jsPDF} = window.jspdf;
     const c = dbGet('config',{});
@@ -3912,7 +3949,7 @@ function verHistorialVentasTienda(){
     <td>${v.metodoPago==='datafono'?'💳 Datáfono':'🎫 Ticket'}</td>
     <td>${eur(v.total)}</td>
     <td style="display:flex;gap:4px">
-      <button class="btn btn-sm btn-icon" onclick='generarTicketPDF(${JSON.stringify(v).replace(/'/g,"&apos;")})'>📄</button>
+      <button class="btn btn-sm btn-icon" onclick="generarTicketPDF(${v.id})">📄</button>
       <button class="btn btn-sm btn-icon" title="Editar" onclick="formEditarVentaTienda(${v.id})">✏️</button>
       <button class="btn btn-sm btn-icon" title="Eliminar" onclick="delVentaTienda(${v.id})">🗑</button>
     </td></tr>
@@ -4062,11 +4099,11 @@ function renderAlbaranesPendientes(){
   const recientes = dbGet('albaranes_pendientes').slice().sort((a,b)=>(b.id||0)-(a.id||0)).slice(0,30);
   const cont = document.getElementById('ap-por-cliente');
   cont.innerHTML = recientes.length ? `
-    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Nº Albarán</th><th>Líneas</th><th>Importe</th><th>Factura</th><th></th></tr></thead><tbody>
+    <div class="table-wrap"><table><thead><tr><th>Nº Albarán</th><th>Fecha</th><th>Cliente</th><th>Líneas</th><th>Importe</th><th>Factura</th><th></th></tr></thead><tbody>
     ${recientes.map(a=>{
       const factura = a.facturaId ? dbGet('facturas').find(f=>f.id===a.facturaId) : null;
       const importe = (a.lineas||[]).reduce((s,l)=>s+(parseFloat(l.imp)||0),0);
-      return `<tr><td>${fmtDate(a.fecha)}</td><td>${getCliName(a.cliId)}</td><td>${a.numAlbaran||'—'}</td>
+      return `<tr><td>${a.numAlbaran||'—'}</td><td>${fmtDate(a.fecha)}</td><td>${getCliName(a.cliId)}</td>
         <td>${(a.lineas||[]).length} línea(s)</td><td>${eur(importe)}</td>
         <td>${factura ? (factura.num?`<span class="badge badge-ok">${factura.num}</span>`:'<span class="badge badge-grey">⏳ sin numerar</span>') : '—'}</td>
         <td style="display:flex;gap:4px">
@@ -4282,7 +4319,7 @@ function formEditarAlbaranLog(id){
       <div class="form-group"><label>Nº Albarán</label><input class="input" id="eal-num" value="${log.numAlbaran||''}"></div>
       <div class="form-group"><label>Nº Pedido</label><input class="input" id="eal-pedido" value="${log.pedido||''}"></div>
     </div>
-    <div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th></th></tr></thead>
+    <div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Lote</th><th></th></tr></thead>
     <tbody id="eal-lineas-tbody"></tbody></table></div>
     <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="lineasEdicionAlbaranLog.push({desc:'',uds:1,precio:0});renderLineasEdicionAlbaranLog()">+ Añadir línea</button>
   `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
@@ -4292,15 +4329,42 @@ function formEditarAlbaranLog(id){
 function renderLineasEdicionAlbaranLog(){
   const tbody = document.getElementById('eal-lineas-tbody');
   if(!tbody) return;
-  tbody.innerHTML = lineasEdicionAlbaranLog.map((l,idx)=>`
-    <tr>
-      <td><input class="input" value="${l.desc||''}" onchange="lineasEdicionAlbaranLog[${idx}].desc=this.value"></td>
+  const catalogo = dbGet('productos');
+  const lotes = dbGet('lotes');
+  tbody.innerHTML = lineasEdicionAlbaranLog.map((l,idx)=>{
+    const lotesCultivo = l.productoId ? lotes.filter(lo=>{ const p=catalogo.find(x=>x.id===l.productoId); return !p || lo.cultivo===p.cultivo; }) : lotes;
+    return `<tr>
+      <td>
+        <select class="select" style="margin-bottom:4px" onchange="cambioProductoLineaEdicionAlbaran(${idx},this.value)">
+          <option value="">— Catálogo —</option>
+          ${catalogo.map(p=>`<option value="${p.id}" ${l.productoId===p.id?'selected':''}>${iconoCultivo(p.cultivo)} ${p.nombre}</option>`).join('')}
+          <option value="__otro__" ${!l.productoId&&l.desc?'selected':''}>✏️ Otro</option>
+        </select>
+        ${!l.productoId ? `<input class="input" value="${l.desc||''}" onchange="lineasEdicionAlbaranLog[${idx}].desc=this.value" placeholder="Nombre del producto">` : ''}
+      </td>
       <td><input class="input" type="number" step="0.01" style="width:80px" value="${l.uds||1}" onchange="lineasEdicionAlbaranLog[${idx}].uds=parseFloat(this.value)||0;renderLineasEdicionAlbaranLog()"></td>
       <td><input class="input" type="number" step="0.01" style="width:90px" value="${l.precio||0}" onchange="lineasEdicionAlbaranLog[${idx}].precio=parseFloat(this.value)||0;renderLineasEdicionAlbaranLog()"></td>
       <td>${eur((l.uds||0)*(l.precio||0))}</td>
+      <td><select class="select" style="width:110px" onchange="lineasEdicionAlbaranLog[${idx}].lote=this.value">
+        <option value="">Sin lote</option>
+        ${lotesCultivo.map(lo=>`<option value="${lo.codigo}" ${l.lote===lo.codigo?'selected':''}>${lo.codigo}</option>`).join('')}
+      </select></td>
       <td><button class="btn btn-sm btn-icon" onclick="lineasEdicionAlbaranLog.splice(${idx},1);renderLineasEdicionAlbaranLog()">🗑</button></td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
+}
+function cambioProductoLineaEdicionAlbaran(idx, valor){
+  if(valor==='__otro__'){
+    lineasEdicionAlbaranLog[idx].productoId = null;
+  } else if(valor){
+    const p = dbGet('productos').find(x=>x.id===parseInt(valor));
+    lineasEdicionAlbaranLog[idx].productoId = parseInt(valor);
+    if(p){ lineasEdicionAlbaranLog[idx].desc = p.nombre; if(!lineasEdicionAlbaranLog[idx].precio) lineasEdicionAlbaranLog[idx].precio = p.pventa||0; }
+  } else {
+    lineasEdicionAlbaranLog[idx].productoId = null;
+    lineasEdicionAlbaranLog[idx].desc = '';
+  }
+  renderLineasEdicionAlbaranLog();
 }
 async function guardarEdicionAlbaranLog(id){
   const log = dbGet('albaranes_pendientes').find(x=>x.id===id);
@@ -4309,7 +4373,7 @@ async function guardarEdicionAlbaranLog(id){
   const fecha = document.getElementById('eal-fecha').value;
   const numAlbaran = document.getElementById('eal-num').value.trim();
   const pedido = document.getElementById('eal-pedido').value.trim();
-  const lineas = lineasEdicionAlbaranLog.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0)}));
+  const lineas = lineasEdicionAlbaranLog.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0), productoId:l.productoId||null, lote:l.lote||''}));
   if(!cliId || !fecha || !lineas.length){ toast('Completa cliente, fecha y al menos una línea','err'); return; }
   try{
     // Deshace lo que había puesto en la factura anterior, y lo vuelve a añadir con los datos nuevos
