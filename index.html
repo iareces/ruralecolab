@@ -615,6 +615,7 @@ tr:hover td{background:#FAFCFA}
       <div class="page-actions">
         <button class="btn btn-secondary" onclick="exportTiendaExcelDiasMeses()">📗 Excel por días/meses</button>
         <button class="btn btn-secondary" onclick="verHistorialVentasTienda()">📋 Ver todos</button>
+        <label class="btn btn-secondary" style="cursor:pointer">📥 Importar Excel de ventas<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcelVentasTienda(this.files[0])"></label>
       </div>
     </div>
     <p id="tienda-aviso-verifactu" style="background:#fff8e6;border:1px solid #e8c766;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#6b5417;margin-bottom:16px">
@@ -1123,6 +1124,40 @@ function dbGet(k, def=[]){
 // Ingresos de tienda combinando los dos sistemas: "Ticket Tienda" (entrada manual
 // diaria) + "Tienda" (TPV, venta por venta). Se suman porque representan canales
 // de venta física complementarios — cada uno cubre los días/ventas que registres ahí.
+// ════════════════════════════════════════════════════
+//  RESOLUCIÓN CANÓNICA DE PRODUCTO
+//  "Tomate ECO Asturiano" y "Tomate Asturiano ECO" deben contar
+//  como el mismo producto aunque estén escritos distinto. Se
+//  prioriza el enlace exacto (productoId); si no existe, se busca
+//  el producto del catálogo más parecido por palabras en común.
+// ════════════════════════════════════════════════════
+function normalizarNombreProducto(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+function similitudProductos(a, b){
+  const wa = normalizarNombreProducto(a).split(' ').filter(w=>w.length>1);
+  const wb = normalizarNombreProducto(b).split(' ').filter(w=>w.length>1);
+  if(!wa.length || !wb.length) return 0;
+  const setB = new Set(wb);
+  const comunes = wa.filter(w=>setB.has(w)).length;
+  return comunes / Math.min(wa.length, wb.length);
+}
+function resolverProductoCanonico(linea, catalogo){
+  const pid = linea.productoId ?? linea.prodId;
+  if(pid!=null && pid!==''){
+    const p = catalogo.find(x=>x.id===parseInt(pid));
+    if(p) return p.nombre;
+  }
+  const texto = (linea.desc||linea.nombre||'').trim();
+  if(!texto) return 'Sin descripción';
+  let mejor=null, mejorScore=0;
+  catalogo.forEach(p=>{
+    const score = similitudProductos(texto, p.nombre);
+    if(score>mejorScore){ mejorScore=score; mejor=p; }
+  });
+  return (mejor && mejorScore>=0.6) ? mejor.nombre : texto;
+}
+
 function ingresosTiendaEnRango(desde, hasta){
   const tks = dbGet('tickets').filter(t=>(!desde||t.fecha>=desde)&&(!hasta||t.fecha<=hasta));
   const ventas = dbGet('ventas_tienda').filter(v=>(!desde||v.fecha>=desde)&&(!hasta||v.fecha<=hasta));
@@ -1878,14 +1913,17 @@ function renderDashboard(){
   ]},options:{responsive:true,plugins:{legend:{position:'top'}}}});
   // Donut por PRODUCTO — suma de importes reales, sea cual sea el precio de cada
   // venta (sumar no tiene el problema que tiene promediar un precio). Se agrupa por
-  // el nombre tal cual se vendió, sin depender de que el catálogo esté bien enlazado.
+  // el PRODUCTO DEL CATÁLOGO (enlace exacto, o el más parecido por palabras en
+  // común) para que "Tomate ECO Asturiano" y "Tomate Asturiano ECO" cuenten como
+  // el mismo producto, aunque estén escritos de forma distinta.
+  const catalogoDash = dbGet('productos');
   const prodMap={};
   facts.filter(f=>f.tipo==='C').forEach(f=>(f.lineas||[]).forEach(l=>{
-    const p = (l.desc||'Sin descripción').trim();
+    const p = resolverProductoCanonico(l, catalogoDash);
     prodMap[p] = (prodMap[p]||0) + (parseFloat(l.imp)||0);
   }));
   dbGet('ventas_tienda').forEach(v=>(v.lineas||[]).forEach(l=>{
-    const p = (l.nombre||l.desc||'Sin descripción').trim();
+    const p = resolverProductoCanonico(l, catalogoDash);
     const cant = parseFloat(l.cantidad ?? l.uds)||0;
     prodMap[p] = (prodMap[p]||0) + cant*(parseFloat(l.precio)||0);
   }));
@@ -4449,6 +4487,122 @@ async function delTicket(id){
 // ════════════════════════════════════════════════════
 //  TIENDA — Excel agrupado por día y por mes
 // ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
+//  IMPORTAR EXCEL DE VENTAS DE TIENDA
+//  Detecta columnas de forma flexible (no exige una plantilla
+//  exacta) y agrupa líneas en tickets si hay una columna de
+//  referencia; si no, cada fila es su propio ticket.
+// ════════════════════════════════════════════════════
+let ventasImportadasPreview = [];
+
+function normalizarCabecera(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+function buscarColumna(headers, candidatos){
+  for(let i=0;i<headers.length;i++){
+    const h = normalizarCabecera(headers[i]);
+    if(candidatos.some(c=>h===c || h.includes(c))) return i;
+  }
+  return -1;
+}
+
+async function importarExcelVentasTienda(file){
+  if(!file) return;
+  try{
+    toast('Leyendo Excel…','info');
+    const buffer = await file.arrayBuffer();
+    const wb = new ExcelJS.Workbook();
+    if(file.name.toLowerCase().endsWith('.csv')){
+      await wb.csv.read(await file.text());
+    } else {
+      await wb.xlsx.load(buffer);
+    }
+    const ws = wb.worksheets[0];
+    if(!ws || ws.rowCount<2){ toast('El archivo está vacío','err'); return; }
+
+    const headerRow = ws.getRow(1).values.map(v=>v||'');
+    const idxFecha = buscarColumna(headerRow, ['fecha']);
+    const idxProducto = buscarColumna(headerRow, ['producto','nombre','descripcion','articulo']);
+    const idxCantidad = buscarColumna(headerRow, ['cantidad','uds','unidades','cant']);
+    const idxPrecio = buscarColumna(headerRow, ['precio unit','precio unitario','precio','pvp']);
+    const idxRef = buscarColumna(headerRow, ['referencia','ticket','n ticket','num ticket','nº ticket','factura']);
+    const idxPago = buscarColumna(headerRow, ['metodo','pago','forma de pago','forma pago']);
+    const idxHora = buscarColumna(headerRow, ['hora']);
+
+    if(idxFecha<0 || idxProducto<0 || idxCantidad<0 || idxPrecio<0){
+      toast('No reconozco las columnas — necesito al menos Fecha, Producto, Cantidad y Precio','err');
+      return;
+    }
+
+    const grupos = {};
+    for(let r=2;r<=ws.rowCount;r++){
+      const row = ws.getRow(r).values;
+      const fechaRaw = row[idxFecha];
+      if(!fechaRaw) continue;
+      let fecha;
+      if(fechaRaw instanceof Date) fecha = fechaRaw.toISOString().slice(0,10);
+      else {
+        const p = String(fechaRaw).split(/[\/\-]/);
+        fecha = p.length===3 ? `${p[2].length===2?'20'+p[2]:p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}` : String(fechaRaw);
+      }
+      const producto = String(row[idxProducto]||'').trim();
+      const cantidad = parseFloat(row[idxCantidad])||0;
+      const precio = parseFloat(row[idxPrecio])||0;
+      if(!producto || cantidad<=0) continue;
+      const referencia = idxRef>=0 ? String(row[idxRef]||'') : `${fecha}__fila${r}`;
+      const metodoPagoTxt = idxPago>=0 ? normalizarCabecera(row[idxPago]) : '';
+      const metodoPago = metodoPagoTxt.includes('datafono')||metodoPagoTxt.includes('tarjeta') ? 'datafono' : 'ticket';
+      const hora = idxHora>=0 ? String(row[idxHora]||'') : '';
+
+      const key = referencia;
+      if(!grupos[key]) grupos[key] = { fecha, hora, metodoPago, lineas:[] };
+      grupos[key].lineas.push({ nombre:producto, cantidad, precio });
+    }
+
+    ventasImportadasPreview = Object.values(grupos);
+    if(!ventasImportadasPreview.length){ toast('No se ha encontrado ninguna línea válida en el archivo','err'); return; }
+    mostrarPreviewImportacionTienda();
+  }catch(e){ console.error(e); toast('Error al leer el Excel: '+e.message,'err'); }
+}
+
+function mostrarPreviewImportacionTienda(){
+  const totalGeneral = ventasImportadasPreview.reduce((s,v)=>s+v.lineas.reduce((s2,l)=>s2+l.cantidad*l.precio,0),0);
+  const filas = ventasImportadasPreview.slice(0,50).map(v=>{
+    const total = v.lineas.reduce((s,l)=>s+l.cantidad*l.precio,0);
+    return `<tr><td>${fmtDate(v.fecha)}</td><td>${v.hora||'—'}</td><td>${v.lineas.length} línea(s)</td><td>${eur(total)}</td></tr>`;
+  }).join('');
+  openModal('Revisar antes de importar', `
+    <p style="color:var(--text-s);font-size:13px">Se van a crear <strong>${ventasImportadasPreview.length} ticket(s)</strong> en Tienda, por un total de <strong>${eur(totalGeneral)}</strong>. Revisa que las fechas y cantidades tengan sentido antes de confirmar.</p>
+    <div class="table-wrap" style="max-height:280px;overflow:auto">
+      <table><thead><tr><th>Fecha</th><th>Hora</th><th>Líneas</th><th>Total</th></tr></thead><tbody>${filas}</tbody></table>
+    </div>
+    ${ventasImportadasPreview.length>50?`<p style="font-size:12px;color:var(--text-s)">Mostrando los primeros 50 de ${ventasImportadasPreview.length}.</p>`:''}
+  `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarImportacionVentasTienda()">✅ Importar ${ventasImportadasPreview.length} ticket(s)</button>`);
+}
+
+async function confirmarImportacionVentasTienda(){
+  let ok=0, error=0;
+  for(const grupo of ventasImportadasPreview){
+    const base = grupo.lineas.reduce((s,l)=>s+l.cantidad*l.precio,0);
+    const ivaImp = base*0.04; // IVA 4% confirmado
+    const registros = dbGet('ventas_tienda');
+    const data = {
+      id: nextId(registros), num: siguienteNumTicketTienda(), fecha: grupo.fecha, hora: grupo.hora||'',
+      lineas: grupo.lineas, metodoPago: grupo.metodoPago, base, ivaImp, total: base+ivaImp
+    };
+    try{
+      const saved = await sbInsert('ventas_tienda', data);
+      CACHE.ventas_tienda = [...(CACHE.ventas_tienda||[]), saved];
+      await descontarStockPorVenta(grupo.lineas.map(l=>({desc:l.nombre, uds:l.cantidad})));
+      ok++;
+    }catch(e){ console.warn('Error importando ticket', e.message); error++; }
+  }
+  closeModal();
+  renderTicketsRecientesTienda();
+  toast(`✅ ${ok} ticket(s) importado(s)` + (error?`, ${error} con error`:''));
+}
+
 async function exportTiendaExcelDiasMeses(){
   const ventas = dbGet('ventas_tienda');
   if(!ventas.length){ toast('No hay ventas de Tienda todavía','err'); return; }
