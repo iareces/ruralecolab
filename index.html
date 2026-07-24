@@ -460,7 +460,7 @@ tr:hover td{background:#FAFCFA}
             <div style="overflow-x:auto">
               <div style="min-width:720px">
                 <div style="display:grid;grid-template-columns:80px 120px 80px 1fr 60px 80px 80px 130px 90px 32px;gap:6px;padding:4px 0;font-size:10px;font-weight:700;color:var(--text-s);text-transform:uppercase">
-                  <span>Albarán</span><span>Fecha Alb.</span><span>Pedido</span><span>Descripción</span><span>Uds</span><span>Precio</span><span>Importe</span><span>Producto (cultivo)</span><span>Lote</span><span></span>
+                  <span>Albarán</span><span>Fecha Alb.</span><span>Pedido</span><span>Descripción</span><span>Uds</span><span>Precio</span><span>Importe</span><span>Cultivo</span><span>Lote</span><span></span>
                 </div>
                 <div id="lineas-wrap"></div>
               </div>
@@ -2122,10 +2122,10 @@ function removeLinea(id){
 
 function renderLineas(){
   const lotes = dbGet('lotes');
-  const productos = dbGet('productos');
   const cultivoSel = document.getElementById('nf-cultivo')?.value || '';
   document.getElementById('lineas-wrap').innerHTML=nfLineas.map(l=>{
-    const lotesFiltrados = lotes.filter(lo=>!cultivoSel || lo.cultivo===cultivoSel);
+    const cultivoLinea = l.cultivo || cultivoSel;
+    const lotesFiltrados = lotes.filter(lo=>!cultivoLinea || lo.cultivo===cultivoLinea);
     return `
     <div class="linea-row" id="lr-${l.id}">
       <input class="input linea-alb" placeholder="Albarán" value="${l.alb||''}" oninput="updLinea('${l.id}','alb',this.value)">
@@ -2135,9 +2135,9 @@ function renderLineas(){
       <input class="input" type="number" min="0" step="0.001" value="${l.uds||1}" oninput="updLinea('${l.id}','uds',this.value);calcLinea('${l.id}')">
       <input class="input" type="number" min="0" step="0.01" value="${l.precio||0}" oninput="updLinea('${l.id}','precio',this.value);calcLinea('${l.id}')">
       <input class="input linea-importe" readonly value="${fmt(l.imp)}" style="background:#f8f8f8;font-weight:700">
-      <select class="select linea-producto" title="Enlazar con producto del catálogo (para que el margen se calcule bien)" onchange="vincularProductoLinea('${l.id}',this.value)">
-        <option value="">🔗 Sin enlazar</option>
-        ${productos.map(p=>`<option value="${p.id}" ${String(l.productoId)===String(p.id)?'selected':''}>${p.nombre}</option>`).join('')}
+      <select class="select linea-cultivo" title="Enlazar con el cultivo (para las estadísticas), sin tocar el precio" onchange="vincularCultivoLinea('${l.id}',this.value)">
+        <option value="">🔗 Sin cultivo</option>
+        ${CULTIVOS.map(c=>`<option value="${c.nombre}" ${l.cultivo===c.nombre?'selected':''}>${c.icono||''} ${c.nombre}</option>`).join('')}
       </select>
       <select class="select linea-lote" onchange="updLinea('${l.id}','lote',this.value)">
         <option value="">Sin lote</option>
@@ -2149,19 +2149,10 @@ function renderLineas(){
   }).join('');
 }
 
-function vincularProductoLinea(id, prodId){
+function vincularCultivoLinea(id, cultivoNombre){
   const l = nfLineas.find(x=>x.id===id);
   if(!l) return;
-  l.productoId = prodId ? parseInt(prodId) : null;
-  if(prodId){
-    const p = dbGet('productos').find(x=>x.id===parseInt(prodId));
-    if(p){
-      if(!l.desc || !l.desc.trim()) l.desc = p.nombre;
-      if(!l.precio) l.precio = p.pventa||0;
-      calcLinea(id);
-    }
-  }
-  renderLineas();
+  l.cultivo = cultivoNombre || '';
 }
 
 function updLinea(id,k,v){ const l=nfLineas.find(x=>x.id===id); if(l) l[k]=v; }
@@ -2844,6 +2835,7 @@ function calcularRentabilidadCultivo(cultivo){
   const idsDelCultivo = new Set(productosDelCultivo.map(p=>p.id));
   const nombresDelCultivo = productosDelCultivo.map(p=>p.nombre.toLowerCase());
   const perteneceCultivo = (linea)=>{
+    if(linea.cultivo) return linea.cultivo===cultivo;
     const pid = linea.productoId ?? linea.prodId;
     if(pid!=null && pid!==''){ return idsDelCultivo.has(parseInt(pid)); }
     const d = (linea.desc||linea.nombre||'').toLowerCase();
@@ -2895,6 +2887,7 @@ function renderCultivosCostes(){
   // Ingresos que no se han podido vincular a ningún cultivo (para que no desaparezcan sin más)
   const catalogoProdCC = dbGet('productos');
   const cultivoDeLineaCC = (linea)=>{
+    if(linea.cultivo) return linea.cultivo;
     const pid = linea.productoId ?? linea.prodId;
     if(pid!=null && pid!==''){ const p=catalogoProdCC.find(x=>x.id===parseInt(pid)); if(p) return p.cultivo||null; }
     const d=(linea.desc||linea.nombre||'').toLowerCase();
@@ -3383,6 +3376,7 @@ function renderRentabilidad(){
   // el cultivo de cabecera de la factura — una factura puede mezclar varios cultivos.
   const catalogoProdRent = dbGet('productos');
   const cultivoDeLineaRent = (linea)=>{
+    if(linea.cultivo) return linea.cultivo;
     const pid = linea.productoId ?? linea.prodId;
     if(pid!=null && pid!==''){ const p=catalogoProdRent.find(x=>x.id===parseInt(pid)); if(p) return p.cultivo||null; }
     const d=(linea.desc||linea.nombre||'').toLowerCase();
@@ -3444,6 +3438,7 @@ function renderRentabilidad(){
   cultivos.forEach((c,i)=>{ gastoPorCultivo[c] = cGas[i]; });
   const catalogoProductos = dbGet('productos');
   const cultivoDeLinea = (linea)=>{
+    if(linea.cultivo) return linea.cultivo;
     const pid = linea.productoId ?? linea.prodId;
     if(pid!=null && pid!==''){ const p = catalogoProductos.find(x=>x.id===parseInt(pid)); if(p) return p.cultivo||null; }
     const d = (linea.desc||linea.nombre||'').toLowerCase();
@@ -3831,11 +3826,12 @@ async function delVentaTienda(id){
 
 function anadirProductoCarrito(prodId){
   const p = dbGet('productos').find(x=>x.id===prodId);
-  if(!p) return;
+  if(!p){ toast('Producto no encontrado (id '+prodId+')','err'); return; }
   const existente = carritoTienda.find(l=>l.prodId===prodId);
   if(existente) existente.cantidad += 1;
   else carritoTienda.push({ prodId, nombre:p.nombre, unidad:p.unidad, precio:p.pventa||0, iva:p.iva||10, cantidad:1, cultivo:p.cultivo||'', loteCodigo:'' });
   renderCarritoTienda();
+  toast(`🛒 ${p.nombre} añadido`, 'info');
 }
 function cambiarLoteCarrito(idx, valor){
   carritoTienda[idx].loteCodigo = valor;
@@ -4158,7 +4154,7 @@ function renderAlbaranesPendientes(){
 let lineasAlbaranManual = [];
 
 function abrirAlbaranManual(){
-  lineasAlbaranManual = [{desc:'', uds:1, precio:0, productoId:null, lote:''}];
+  lineasAlbaranManual = [{desc:'', uds:1, precio:0, cultivo:'', lote:''}];
   const clientes = dbGet('clientes');
   openModal('Nuevo albarán manual', `
     <div class="form-grid">
@@ -4171,7 +4167,7 @@ function abrirAlbaranManual(){
       <div class="form-group"><label>Nº Pedido</label><input class="input" id="am-pedido" placeholder="PED-45"></div>
     </div>
     <div style="margin-top:14px">
-      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Lote</th><th></th></tr></thead>
+      <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Cultivo</th><th>Lote</th><th></th></tr></thead>
       <tbody id="am-lineas-tbody"></tbody></table></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="anadirLineaAlbaranManual()">+ Añadir línea</button>
     </div>
@@ -4181,27 +4177,15 @@ function abrirAlbaranManual(){
 }
 
 function anadirLineaAlbaranManual(){
-  lineasAlbaranManual.push({desc:'', uds:1, precio:0, productoId:null, lote:''});
+  lineasAlbaranManual.push({desc:'', uds:1, precio:0, cultivo:'', lote:''});
   renderLineasAlbaranManual();
 }
 function actualizarLineaAlbaranManual(idx, campo, valor){
   lineasAlbaranManual[idx][campo] = (campo==='uds'||campo==='precio') ? (parseFloat(valor)||0) : valor;
   renderLineasAlbaranManual();
 }
-function cambioProductoLineaAlbaranManual(idx, valor){
-  if(valor==='__otro__'){
-    lineasAlbaranManual[idx].productoId = null;
-  } else if(valor){
-    const p = dbGet('productos').find(x=>x.id===parseInt(valor));
-    if(p){
-      lineasAlbaranManual[idx].productoId = p.id;
-      lineasAlbaranManual[idx].desc = p.nombre;
-      lineasAlbaranManual[idx].precio = p.pventa||0;
-    }
-  } else {
-    lineasAlbaranManual[idx].productoId = null;
-    lineasAlbaranManual[idx].desc = '';
-  }
+function vincularCultivoLineaAlbaranManual(idx, cultivoNombre){
+  lineasAlbaranManual[idx].cultivo = cultivoNombre || '';
   renderLineasAlbaranManual();
 }
 function eliminarLineaAlbaranManual(idx){
@@ -4211,23 +4195,19 @@ function eliminarLineaAlbaranManual(idx){
 function renderLineasAlbaranManual(){
   const tbody = document.getElementById('am-lineas-tbody');
   if(!tbody) return;
-  const catalogo = dbGet('productos');
   const lotes = dbGet('lotes');
   tbody.innerHTML = lineasAlbaranManual.map((l,idx)=>{
-    const lotesCultivo = l.productoId ? lotes.filter(lo=>{ const p=catalogo.find(x=>x.id===l.productoId); return !p || lo.cultivo===p.cultivo; }) : lotes;
+    const lotesCultivo = l.cultivo ? lotes.filter(lo=>lo.cultivo===l.cultivo) : lotes;
     return `
     <tr>
-      <td>
-        <select class="select" style="margin-bottom:4px" onchange="cambioProductoLineaAlbaranManual(${idx},this.value)">
-          <option value="">— Catálogo —</option>
-          ${catalogo.map(p=>`<option value="${p.id}" ${l.productoId===p.id?'selected':''}>${iconoCultivo(p.cultivo)} ${p.nombre}</option>`).join('')}
-          <option value="__otro__" ${!l.productoId&&l.desc?'selected':''}>✏️ Otro</option>
-        </select>
-        ${!l.productoId ? `<input class="input" value="${l.desc}" onchange="actualizarLineaAlbaranManual(${idx},'desc',this.value)" placeholder="Nombre del producto">` : ''}
-      </td>
+      <td><input class="input" value="${l.desc}" onchange="actualizarLineaAlbaranManual(${idx},'desc',this.value)" placeholder="Nombre del producto"></td>
       <td><input class="input" type="number" step="0.01" style="width:80px" value="${l.uds}" onchange="actualizarLineaAlbaranManual(${idx},'uds',this.value)"></td>
       <td><input class="input" type="number" step="0.01" style="width:90px" value="${l.precio}" onchange="actualizarLineaAlbaranManual(${idx},'precio',this.value)"></td>
       <td>${eur(l.uds*l.precio)}</td>
+      <td><select class="select" style="width:120px" onchange="vincularCultivoLineaAlbaranManual(${idx},this.value)">
+        <option value="">🔗 Sin cultivo</option>
+        ${CULTIVOS.map(c=>`<option value="${c.nombre}" ${l.cultivo===c.nombre?'selected':''}>${c.icono||''} ${c.nombre}</option>`).join('')}
+      </select></td>
       <td><select class="select" style="width:110px" onchange="actualizarLineaAlbaranManual(${idx},'lote',this.value)">
         <option value="">Sin lote</option>
         ${lotesCultivo.map(lo=>`<option value="${lo.codigo}" ${l.lote===lo.codigo?'selected':''}>${lo.codigo}</option>`).join('')}
@@ -4245,7 +4225,7 @@ async function guardarAlbaranManual(){
   const pedido = document.getElementById('am-pedido').value.trim();
   if(!cliId){ toast('Elige el cliente','err'); return; }
   if(!fecha){ toast('Indica la fecha','err'); return; }
-  const lineas = lineasAlbaranManual.filter(l=>l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds, precio:l.precio, imp:l.uds*l.precio, productoId:l.productoId||null, lote:l.lote||''}));
+  const lineas = lineasAlbaranManual.filter(l=>l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds, precio:l.precio, imp:l.uds*l.precio, cultivo:l.cultivo||'', lote:l.lote||''}));
   if(!lineas.length){ toast('Añade al menos una línea con descripción','err'); return; }
   try{
     const registros = dbGet('albaranes_pendientes');
@@ -4276,7 +4256,7 @@ async function agregarAlbaranAFacturaProvisional({cliId, fecha, numAlbaran, pedi
   const nuevasLineas = lineasAlbaran.map(l=>({
     id:'l'+Date.now()+Math.random().toString(36).slice(2,5),
     alb:numAlbaran||'', albFecha:fecha||'', ped:pedido||'', desc:l.desc, uds:l.uds, precio:l.precio, imp:l.imp,
-    productoId:l.productoId||null, lote:l.lote||'', origenAlbaranId:origenAlbaranId||null
+    productoId:l.productoId||null, cultivo:l.cultivo||'', lote:l.lote||'', origenAlbaranId:origenAlbaranId||null
   }));
 
   if(factura){
@@ -4357,9 +4337,9 @@ function formEditarAlbaranLog(id){
       <div class="form-group"><label>Nº Albarán</label><input class="input" id="eal-num" value="${log.numAlbaran||''}"></div>
       <div class="form-group"><label>Nº Pedido</label><input class="input" id="eal-pedido" value="${log.pedido||''}"></div>
     </div>
-    <div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Lote</th><th></th></tr></thead>
+    <div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Cultivo</th><th>Lote</th><th></th></tr></thead>
     <tbody id="eal-lineas-tbody"></tbody></table></div>
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="lineasEdicionAlbaranLog.push({desc:'',uds:1,precio:0});renderLineasEdicionAlbaranLog()">+ Añadir línea</button>
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="lineasEdicionAlbaranLog.push({desc:'',uds:1,precio:0,cultivo:'',lote:''});renderLineasEdicionAlbaranLog()">+ Añadir línea</button>
   `, `<button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarEdicionAlbaranLog(${id})">💾 Guardar cambios</button>`);
   renderLineasEdicionAlbaranLog();
@@ -4367,22 +4347,18 @@ function formEditarAlbaranLog(id){
 function renderLineasEdicionAlbaranLog(){
   const tbody = document.getElementById('eal-lineas-tbody');
   if(!tbody) return;
-  const catalogo = dbGet('productos');
   const lotes = dbGet('lotes');
   tbody.innerHTML = lineasEdicionAlbaranLog.map((l,idx)=>{
-    const lotesCultivo = l.productoId ? lotes.filter(lo=>{ const p=catalogo.find(x=>x.id===l.productoId); return !p || lo.cultivo===p.cultivo; }) : lotes;
+    const lotesCultivo = l.cultivo ? lotes.filter(lo=>lo.cultivo===l.cultivo) : lotes;
     return `<tr>
-      <td>
-        <select class="select" style="margin-bottom:4px" onchange="cambioProductoLineaEdicionAlbaran(${idx},this.value)">
-          <option value="">— Catálogo —</option>
-          ${catalogo.map(p=>`<option value="${p.id}" ${l.productoId===p.id?'selected':''}>${iconoCultivo(p.cultivo)} ${p.nombre}</option>`).join('')}
-          <option value="__otro__" ${!l.productoId&&l.desc?'selected':''}>✏️ Otro</option>
-        </select>
-        ${!l.productoId ? `<input class="input" value="${l.desc||''}" onchange="lineasEdicionAlbaranLog[${idx}].desc=this.value" placeholder="Nombre del producto">` : ''}
-      </td>
+      <td><input class="input" value="${l.desc||''}" onchange="lineasEdicionAlbaranLog[${idx}].desc=this.value" placeholder="Nombre del producto"></td>
       <td><input class="input" type="number" step="0.01" style="width:80px" value="${l.uds||1}" onchange="lineasEdicionAlbaranLog[${idx}].uds=parseFloat(this.value)||0;renderLineasEdicionAlbaranLog()"></td>
       <td><input class="input" type="number" step="0.01" style="width:90px" value="${l.precio||0}" onchange="lineasEdicionAlbaranLog[${idx}].precio=parseFloat(this.value)||0;renderLineasEdicionAlbaranLog()"></td>
       <td>${eur((l.uds||0)*(l.precio||0))}</td>
+      <td><select class="select" style="width:120px" onchange="lineasEdicionAlbaranLog[${idx}].cultivo=this.value;renderLineasEdicionAlbaranLog()">
+        <option value="">🔗 Sin cultivo</option>
+        ${CULTIVOS.map(c=>`<option value="${c.nombre}" ${l.cultivo===c.nombre?'selected':''}>${c.icono||''} ${c.nombre}</option>`).join('')}
+      </select></td>
       <td><select class="select" style="width:110px" onchange="lineasEdicionAlbaranLog[${idx}].lote=this.value">
         <option value="">Sin lote</option>
         ${lotesCultivo.map(lo=>`<option value="${lo.codigo}" ${l.lote===lo.codigo?'selected':''}>${lo.codigo}</option>`).join('')}
@@ -4391,19 +4367,6 @@ function renderLineasEdicionAlbaranLog(){
     </tr>`;
   }).join('');
 }
-function cambioProductoLineaEdicionAlbaran(idx, valor){
-  if(valor==='__otro__'){
-    lineasEdicionAlbaranLog[idx].productoId = null;
-  } else if(valor){
-    const p = dbGet('productos').find(x=>x.id===parseInt(valor));
-    lineasEdicionAlbaranLog[idx].productoId = parseInt(valor);
-    if(p){ lineasEdicionAlbaranLog[idx].desc = p.nombre; if(!lineasEdicionAlbaranLog[idx].precio) lineasEdicionAlbaranLog[idx].precio = p.pventa||0; }
-  } else {
-    lineasEdicionAlbaranLog[idx].productoId = null;
-    lineasEdicionAlbaranLog[idx].desc = '';
-  }
-  renderLineasEdicionAlbaranLog();
-}
 async function guardarEdicionAlbaranLog(id){
   const log = dbGet('albaranes_pendientes').find(x=>x.id===id);
   if(!log) return;
@@ -4411,7 +4374,7 @@ async function guardarEdicionAlbaranLog(id){
   const fecha = document.getElementById('eal-fecha').value;
   const numAlbaran = document.getElementById('eal-num').value.trim();
   const pedido = document.getElementById('eal-pedido').value.trim();
-  const lineas = lineasEdicionAlbaranLog.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0), productoId:l.productoId||null, lote:l.lote||''}));
+  const lineas = lineasEdicionAlbaranLog.filter(l=>l.desc && l.desc.trim()).map(l=>({desc:l.desc.trim(), uds:l.uds||0, precio:l.precio||0, imp:(l.uds||0)*(l.precio||0), cultivo:l.cultivo||'', lote:l.lote||''}));
   if(!cliId || !fecha || !lineas.length){ toast('Completa cliente, fecha y al menos una línea','err'); return; }
   try{
     // Deshace lo que había puesto en la factura anterior, y lo vuelve a añadir con los datos nuevos
